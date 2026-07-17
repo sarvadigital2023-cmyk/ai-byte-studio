@@ -19,3 +19,6 @@ dev-dist/
 
 # Vercel
 .vercel/
+
+# TypeScript incremental build info
+*.tsbuildinfo
