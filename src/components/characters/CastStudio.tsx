@@ -11,6 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ACCENT, type Accent } from '@/utils/accent'
 import { countWords, estimateSpeechDuration, formatDuration } from '@/utils/format'
 import { CARTOON_STYLES, MAX_CHARACTERS, MIN_CHARACTERS } from '@/types'
+import { useT, fmt } from '@/i18n'
 
 interface CastStudioProps {
   kind: 'cinema' | 'cartoon'
@@ -26,6 +27,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
   const a = ACCENT[accent]
   const store = useStore()
   const videoProvider = useSettingsStore((s) => s.videoProvider)
+  const t = useT()
 
   const count = store.characters.length
   const enough = count >= MIN_CHARACTERS
@@ -35,17 +37,17 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
   const estimate = estimateSpeechDuration(store.script)
 
   const createDisabledReason = !enough
-    ? `Add at least ${MIN_CHARACTERS - count} more character${MIN_CHARACTERS - count > 1 ? 's' : ''} (minimum ${MIN_CHARACTERS})`
+    ? fmt(t.cast.reasonAddMore, { n: MIN_CHARACTERS - count, min: MIN_CHARACTERS })
     : !allGenerated
-      ? 'Generate all avatars first'
+      ? t.cast.reasonGenerateFirst
       : !scriptFilled
-        ? 'Write the script first'
+        ? t.cast.reasonWriteScript
         : undefined
 
   const generateDisabledReason = !enough
-    ? `Need ${MIN_CHARACTERS}–${MAX_CHARACTERS} characters (now ${count})`
+    ? fmt(t.cast.reasonNeedRange, { min: MIN_CHARACTERS, max: MAX_CHARACTERS, n: count })
     : store.generatingAll
-      ? 'Generation in progress…'
+      ? t.cast.reasonInProgress
       : undefined
 
   // Highlight "Name:" line starts in the script preview
@@ -80,7 +82,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
     void startVideoPipeline({
       type: kind,
       provider: videoProvider,
-      title: kind === 'cinema' ? 'My movie' : 'My cartoon',
+      title: kind === 'cinema' ? t.gen.myMovie : t.gen.myCartoon,
       characters: store.characters,
       script: store.script,
       style: kind === 'cartoon' ? store.style : undefined,
@@ -92,7 +94,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
       {/* Style picker — cartoon only, chosen once for the whole project */}
       {kind === 'cartoon' && (
         <section>
-          <h2 className="mb-2 text-sm font-bold text-white/80">Project style</h2>
+          <h2 className="mb-2 text-sm font-bold text-white/80">{t.cast.projectStyle}</h2>
           <div data-swipe-ignore className="no-scrollbar flex gap-2 overflow-x-auto pb-1">
             {CARTOON_STYLES.map((s) => (
               <Chip
@@ -110,24 +112,25 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
       {/* Characters */}
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white/80">Characters</h2>
+          <h2 className="text-sm font-bold text-white/80">{t.cast.characters}</h2>
           <span
             className={`rounded-full border px-2.5 py-1 text-xs font-bold ${
               enough ? 'border-neon-green/50 text-neon-green' : 'border-neon-yellow/50 text-neon-yellow'
             }`}
           >
-            {count} / {MAX_CHARACTERS} characters
+            {fmt(t.cast.counter, { n: count, max: MAX_CHARACTERS })}
           </span>
         </div>
 
         {count === 0 ? (
           <EmptyState
             icon={kind === 'cinema' ? '🎬' : '🎨'}
-            title="No characters yet"
-            hint={`Add ${MIN_CHARACTERS}–${MAX_CHARACTERS} characters to build your ${
-              kind === 'cinema' ? 'movie cast' : 'cartoon cast'
-            }.`}
-            ctaLabel="+ Add first character"
+            title={kind === 'cinema' ? t.cast.emptyTitleCinema : t.cast.emptyTitleCartoon}
+            hint={fmt(kind === 'cinema' ? t.cast.emptyHintCinema : t.cast.emptyHintCartoon, {
+              min: MIN_CHARACTERS,
+              max: MAX_CHARACTERS,
+            })}
+            ctaLabel={t.cast.addFirst}
             accent={accent}
             onCta={() => store.addCharacter()}
           />
@@ -156,7 +159,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
                 className={`glass flex h-auto w-[120px] shrink-0 snap-center flex-col items-center justify-center gap-2 border-dashed ${a.border} text-sm font-bold ${a.text}`}
               >
                 <span className="text-2xl">+</span>
-                Add
+                {t.common.add}
               </motion.button>
             )}
           </div>
@@ -164,8 +167,9 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
 
         {count > 0 && !enough && (
           <p className="mt-2 text-xs text-neon-yellow">
-            Project is incomplete — a {kind === 'cinema' ? 'movie' : 'cartoon'} needs at least{' '}
-            {MIN_CHARACTERS} characters.
+            {fmt(kind === 'cinema' ? t.cast.incompleteCinema : t.cast.incompleteCartoon, {
+              min: MIN_CHARACTERS,
+            })}
           </p>
         )}
       </section>
@@ -173,16 +177,16 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
       {/* Script */}
       <section>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-bold text-white/80">Script</h2>
+          <h2 className="text-sm font-bold text-white/80">{t.cast.script}</h2>
           <span className="text-xs text-muted">
-            {words} words · ≈{formatDuration(estimate)}
+            {fmt(t.cast.scriptStats, { words, duration: formatDuration(estimate) })}
           </span>
         </div>
         <textarea
           value={store.script}
           onChange={(e) => store.setScript(e.target.value)}
           rows={7}
-          placeholder={'Format each line as:\nName: line of dialogue\n\nMaya: Did you see that?!\nLeo: I told you the city never sleeps…'}
+          placeholder={t.cast.scriptPlaceholder}
           className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-sm leading-relaxed outline-none placeholder:text-white/25 focus:border-white/30"
         />
         {scriptPreview && (
@@ -200,10 +204,10 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
           onClick={() => void store.generateAll(videoProvider, kind)}
         >
           {store.generatingAll
-            ? 'Generating avatars…'
+            ? t.cast.generating
             : kind === 'cinema'
-              ? 'Generate all avatars'
-              : 'Generate all characters'}
+              ? t.cast.generateAllCinema
+              : t.cast.generateAllCartoon}
         </NeonButton>
         <NeonButton
           accent={accent}
@@ -212,7 +216,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
           disabledReason={createDisabledReason}
           onClick={handleCreate}
         >
-          {kind === 'cinema' ? '🎬 Create movie' : '🎨 Create cartoon'}
+          {kind === 'cinema' ? t.cast.createMovie : t.cast.createCartoon}
         </NeonButton>
       </section>
     </div>

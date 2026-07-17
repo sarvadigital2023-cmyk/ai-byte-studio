@@ -4,6 +4,7 @@ import type { Character, CartoonStyle, VideoProviderId, VoiceSample } from '@/ty
 import { uid, MAX_CHARACTERS } from '@/types'
 import { getVideoProvider } from '@/services/providers'
 import { toast } from '@/store/toasts'
+import { getT } from '@/i18n'
 
 /**
  * Shared multi-character store factory used by Cinema Studio and
@@ -74,7 +75,7 @@ export function createCastStore(storageKey: string) {
               ),
             }))
           } catch (err) {
-            toast(err instanceof Error ? err.message : 'Avatar generation failed', 'error')
+            toast(err instanceof Error ? err.message : getT().cast.avatarFailed, 'error')
             set((s) => ({
               characters: s.characters.map((c) =>
                 c.id === id ? { ...c, avatarStatus: 'error' } : c,

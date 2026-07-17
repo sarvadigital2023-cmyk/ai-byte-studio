@@ -7,16 +7,23 @@ import { isCloudEnabled } from '@/services/supabase'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { formatDate } from '@/utils/format'
+import { useT, fmt } from '@/i18n'
 
-const TYPE_BADGE: Record<StudioType, { label: string; cls: string; emoji: string }> = {
-  solo: { label: 'Solo', cls: 'border-neon-blue/50 text-neon-blue', emoji: '👤' },
-  cinema: { label: 'Cinema', cls: 'border-neon-pink/50 text-neon-pink', emoji: '🎬' },
-  cartoon: { label: 'Cartoon', cls: 'border-neon-green/50 text-neon-green', emoji: '🎨' },
+const TYPE_STYLE: Record<StudioType, { cls: string; emoji: string }> = {
+  solo: { cls: 'border-neon-blue/50 text-neon-blue', emoji: '👤' },
+  cinema: { cls: 'border-neon-pink/50 text-neon-pink', emoji: '🎬' },
+  cartoon: { cls: 'border-neon-green/50 text-neon-green', emoji: '🎨' },
 }
 
 /** Generation history with pull-to-refresh (cloud merge) and delete. */
 export function HistoryPage() {
   const navigate = useNavigate()
+  const t = useT()
+  const typeLabel: Record<StudioType, string> = {
+    solo: t.history.badgeSolo,
+    cinema: t.history.badgeCinema,
+    cartoon: t.history.badgeCartoon,
+  }
   const [jobs, setJobs] = useState<GenerationJob[]>(() => listLocalJobs())
   const [refreshing, setRefreshing] = useState(false)
   const [toDelete, setToDelete] = useState<GenerationJob | null>(null)
@@ -58,25 +65,25 @@ export function HistoryPage() {
         className="flex items-end justify-center overflow-hidden"
       >
         <span className={`pb-2 text-xs font-bold text-neon-blue ${refreshing ? 'animate-pulse' : ''}`}>
-          {refreshing ? 'Refreshing…' : pull > 55 ? 'Release to refresh' : 'Pull to refresh'}
+          {refreshing ? t.history.refreshing : pull > 55 ? t.history.release : t.history.pull}
         </span>
       </motion.div>
 
-      <h1 className="mb-4 text-lg font-extrabold">History</h1>
+      <h1 className="mb-4 text-lg font-extrabold">{t.history.title}</h1>
 
       {jobs.length === 0 ? (
         <EmptyState
           icon="🎞"
-          title="Nothing generated yet"
-          hint="Your finished videos, movies and cartoons will appear here."
-          ctaLabel="Create your first video"
+          title={t.history.emptyTitle}
+          hint={t.history.emptyHint}
+          ctaLabel={t.history.emptyCta}
           onCta={() => navigate('/solo')}
         />
       ) : (
         <ul className="space-y-3 pb-6">
           <AnimatePresence>
             {jobs.map((job, i) => {
-              const badge = TYPE_BADGE[job.type]
+              const badge = TYPE_STYLE[job.type]
               return (
                 <motion.li
                   key={job.id}
@@ -106,7 +113,7 @@ export function HistoryPage() {
                         <span
                           className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${badge.cls}`}
                         >
-                          {badge.label}
+                          {typeLabel[job.type]}
                         </span>
                         <span
                           className={`rounded-full border px-2 py-0.5 text-[10px] font-bold ${
@@ -115,13 +122,13 @@ export function HistoryPage() {
                               : 'border-neon-yellow/50 text-neon-yellow'
                           }`}
                         >
-                          {job.status === 'done' ? 'ready ✓' : job.status}
+                          {job.status === 'done' ? t.history.ready : job.status}
                         </span>
                       </div>
                     </div>
                     <button
                       type="button"
-                      aria-label="Delete"
+                      aria-label={t.common.delete}
                       onClick={(e) => {
                         e.stopPropagation()
                         setToDelete(job)
@@ -140,8 +147,8 @@ export function HistoryPage() {
 
       <ConfirmDialog
         open={!!toDelete}
-        title="Delete this generation?"
-        message={`"${toDelete?.title}" and its Share Kit texts will be removed from history.`}
+        title={t.history.deleteTitle}
+        message={fmt(t.history.deleteMessage, { title: toDelete?.title ?? '' })}
         onConfirm={() => {
           if (toDelete) {
             deleteJob(toDelete.id)

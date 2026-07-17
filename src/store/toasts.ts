@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { uid } from '@/types'
+import { getT, fmt } from '@/i18n'
 
 export type ToastTone = 'info' | 'success' | 'warning' | 'error'
 
@@ -42,8 +43,9 @@ export function toast(
 
 /** Error shown when a required provider API key is missing from the environment. */
 export function toastMissingKey(providerName: string): void {
-  toast(`${providerName} key is not configured`, 'error', {
-    hint: 'Add it in Vercel → Project Settings → Environment Variables, then redeploy.',
+  const t = getT()
+  toast(fmt(t.toasts.missingKey, { p: providerName }), 'error', {
+    hint: t.toasts.missingKeyHint,
     durationMs: 6000,
   })
 }

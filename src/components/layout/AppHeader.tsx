@@ -3,10 +3,12 @@ import { Link } from 'react-router-dom'
 import { useSettingsStore } from '@/store/settings'
 import { onSyncChange } from '@/services/history'
 import { isCloudEnabled } from '@/services/supabase'
+import { useT } from '@/i18n'
 
 /** Top header: brand, active video provider badge, sync indicator, settings. */
 export function AppHeader() {
   const videoProvider = useSettingsStore((s) => s.videoProvider)
+  const t = useT()
   const [syncing, setSyncing] = useState(false)
 
   useEffect(() => onSyncChange(setSyncing), [])
@@ -24,7 +26,7 @@ export function AppHeader() {
         <div className="flex items-center gap-2">
           {isCloudEnabled && (
             <span
-              title={syncing ? 'Syncing…' : 'Synced'}
+              title={syncing ? t.header.syncing : t.header.synced}
               className={`h-2 w-2 rounded-full transition-colors ${
                 syncing ? 'animate-pulse bg-neon-yellow' : 'bg-neon-green/70'
               }`}
@@ -35,14 +37,14 @@ export function AppHeader() {
           </span>
           <Link
             to="/history"
-            aria-label="History"
+            aria-label={t.header.history}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-base"
           >
             🕘
           </Link>
           <Link
             to="/settings"
-            aria-label="Settings"
+            aria-label={t.header.settings}
             className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-base"
           >
             ⚙️

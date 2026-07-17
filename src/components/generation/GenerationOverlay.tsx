@@ -5,6 +5,7 @@ import { useGenerationStore } from '@/store/generation'
 import { NeonProgress } from '@/components/ui/NeonProgress'
 import { NeonButton } from '@/components/ui/NeonButton'
 import { ACCENT } from '@/utils/accent'
+import { useT } from '@/i18n'
 
 /**
  * Full-screen generation overlay: step-by-step statuses, neon progress bar,
@@ -14,6 +15,7 @@ import { ACCENT } from '@/utils/accent'
 export function GenerationOverlay() {
   const gen = useGenerationStore()
   const navigate = useNavigate()
+  const t = useT()
   const a = ACCENT[gen.accent]
 
   const visible = gen.status === 'running' || gen.status === 'error' || gen.status === 'done'
@@ -50,7 +52,7 @@ export function GenerationOverlay() {
               animate={{ y: 0, opacity: 1 }}
               className={`text-center text-xl font-extrabold ${a.text}`}
             >
-              {gen.status === 'done' ? 'Done ✓' : gen.title}
+              {gen.status === 'done' ? t.gen.done : gen.title}
             </motion.h2>
 
             <div className="mt-6">
@@ -109,7 +111,7 @@ export function GenerationOverlay() {
             <div className="mt-10 flex flex-col items-center gap-3">
               {gen.status === 'error' && failedStep && (
                 <NeonButton accent={gen.accent} fullWidth onClick={gen.retryStep}>
-                  ↻ Retry step
+                  {t.gen.retryStep}
                 </NeonButton>
               )}
               {gen.status !== 'done' && (
@@ -121,7 +123,7 @@ export function GenerationOverlay() {
                   }}
                   className="min-h-[44px] px-6 text-sm font-bold text-white/50"
                 >
-                  Cancel
+                  {t.common.cancel}
                 </button>
               )}
             </div>

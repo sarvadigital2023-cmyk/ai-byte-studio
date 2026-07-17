@@ -1,8 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRegisterSW } from 'virtual:pwa-register/react'
+import { useT } from '@/i18n'
 
 /** Non-intrusive "Update available → Refresh" toast on new deployments. */
 export function UpdateToast() {
+  const t = useT()
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
@@ -20,13 +22,13 @@ export function UpdateToast() {
           style={{ top: 'calc(env(safe-area-inset-top) + 8px)' }}
         >
           <div className="glass glass-glow-green flex items-center gap-3 px-4 py-3">
-            <p className="flex-1 text-sm font-bold text-neon-green">Update available</p>
+            <p className="flex-1 text-sm font-bold text-neon-green">{t.pwa.updateAvailable}</p>
             <button
               type="button"
               onClick={() => void updateServiceWorker(true)}
               className="rounded-full border border-neon-green/50 bg-neon-green/10 px-4 py-1.5 text-sm font-bold text-neon-green"
             >
-              Refresh
+              {t.pwa.refresh}
             </button>
             <button
               type="button"

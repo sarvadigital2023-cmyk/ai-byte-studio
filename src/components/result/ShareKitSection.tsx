@@ -7,6 +7,7 @@ import { saveJob } from '@/services/history'
 import { copyText } from '@/utils/clipboard'
 import { toast } from '@/store/toasts'
 import { Chip } from '@/components/ui/Chip'
+import { useT, getT } from '@/i18n'
 
 interface ShareKitSectionProps {
   job: GenerationJob
@@ -18,6 +19,7 @@ interface ShareKitSectionProps {
  * hashtags with one-tap copy. Edits persist to history (and Supabase).
  */
 export function ShareKitSection({ job, onJobUpdate }: ShareKitSectionProps) {
+  const t = useT()
   const [selected, setSelected] = useState<SharePlatform[]>(['tiktok'])
 
   const togglePlatform = (id: SharePlatform) => {
@@ -39,19 +41,19 @@ export function ShareKitSection({ job, onJobUpdate }: ShareKitSectionProps) {
     const updated: GenerationJob = { ...job, shareKit: generateShareKit(job.type, job.title) }
     onJobUpdate(updated)
     saveJob(updated)
-    toast('Share texts regenerated', 'success')
+    toast(t.share.regenerated, 'success')
   }
 
   return (
     <section className="pb-8">
       <div className="mb-3 flex items-center justify-between">
-        <h2 className="text-base font-extrabold">Share Kit</h2>
+        <h2 className="text-base font-extrabold">{t.share.title}</h2>
         <button
           type="button"
           onClick={regenerate}
           className="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-bold text-white/80"
         >
-          ↻ Regenerate texts
+          {t.share.regenerateTexts}
         </button>
       </div>
 
@@ -85,24 +87,24 @@ export function ShareKitSection({ job, onJobUpdate }: ShareKitSectionProps) {
               <div className="mb-2 flex items-center justify-between">
                 <h3 className="text-sm font-extrabold text-neon-blue">{label}</h3>
                 <CopyButton
-                  label="Copy all"
+                  label={t.share.copyAll}
                   text={`${entry.title}\n\n${entry.description}\n\n${entry.hashtags}`}
                 />
               </div>
               <EditableBlock
-                label="Title"
+                label={t.share.blockTitle}
                 value={entry.title}
                 rows={2}
                 onChange={(v) => updateEntry(platform, { title: v })}
               />
               <EditableBlock
-                label="Description"
+                label={t.share.blockDescription}
                 value={entry.description}
                 rows={4}
                 onChange={(v) => updateEntry(platform, { description: v })}
               />
               <EditableBlock
-                label="Hashtags"
+                label={t.share.blockHashtags}
                 value={entry.hashtags}
                 rows={2}
                 onChange={(v) => updateEntry(platform, { hashtags: v })}
@@ -142,7 +144,8 @@ function EditableBlock({
   )
 }
 
-function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) {
+function CopyButton({ text, label }: { text: string; label?: string }) {
+  const t = useT()
   const [copied, setCopied] = useState(false)
   return (
     <motion.button
@@ -152,10 +155,10 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
         const ok = await copyText(text)
         if (ok) {
           setCopied(true)
-          toast('Copied to clipboard', 'success', { durationMs: 1500 })
+          toast(getT().share.copiedToast, 'success', { durationMs: 1500 })
           setTimeout(() => setCopied(false), 1800)
         } else {
-          toast('Copy failed', 'error')
+          toast(getT().share.copyFailed, 'error')
         }
       }}
       className={`rounded-full border px-3 py-1 text-[11px] font-bold transition-colors ${
@@ -164,7 +167,7 @@ function CopyButton({ text, label = 'Copy' }: { text: string; label?: string }) 
           : 'border-white/15 bg-white/5 text-white/70'
       }`}
     >
-      {copied ? '✓ Copied' : label}
+      {copied ? t.share.copied : (label ?? t.share.copy)}
     </motion.button>
   )
 }

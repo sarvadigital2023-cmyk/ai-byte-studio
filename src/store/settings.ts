@@ -3,13 +3,24 @@ import { persist } from 'zustand/middleware'
 import type { StudioType, VideoProviderId } from '@/types'
 import { supabase, getCurrentUserId } from '@/services/supabase'
 
+type Locale = 'en' | 'ru'
+
+function detectLocale(): Locale {
+  return typeof navigator !== 'undefined' && navigator.language?.toLowerCase().startsWith('ru')
+    ? 'ru'
+    : 'en'
+}
+
 interface SettingsState {
   /** Global video provider for Solo, Cinema and Cartoon pipelines. */
   videoProvider: VideoProviderId
   /** Last used tab, restored on app open. */
   lastTab: StudioType
+  /** UI language. */
+  locale: Locale
   setVideoProvider: (id: VideoProviderId) => void
   setLastTab: (tab: StudioType) => void
+  setLocale: (locale: Locale) => void
   hydrateFromProfile: () => Promise<void>
 }
 
@@ -18,6 +29,11 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       videoProvider: 'heygen',
       lastTab: 'solo',
+      locale: detectLocale(),
+      setLocale: (locale) => {
+        set({ locale })
+        document.documentElement.lang = locale
+      },
       setVideoProvider: (id) => {
         set({ videoProvider: id })
         void saveProfilePreference(id)

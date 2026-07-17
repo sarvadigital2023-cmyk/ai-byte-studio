@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { NeonButton } from './NeonButton'
+import { useT } from '@/i18n'
 
 interface ConfirmDialogProps {
   open: boolean
@@ -14,10 +15,11 @@ export function ConfirmDialog({
   open,
   title,
   message,
-  confirmLabel = 'Delete',
+  confirmLabel,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const t = useT()
   return (
     <AnimatePresence>
       {open && (
@@ -40,10 +42,10 @@ export function ConfirmDialog({
             <p className="mt-1.5 text-sm text-muted">{message}</p>
             <div className="mt-5 flex gap-3">
               <NeonButton variant="ghost" fullWidth onClick={onCancel}>
-                Cancel
+                {t.common.cancel}
               </NeonButton>
               <NeonButton accent="pink" fullWidth onClick={onConfirm}>
-                {confirmLabel}
+                {confirmLabel ?? t.common.delete}
               </NeonButton>
             </div>
           </motion.div>

@@ -30,6 +30,11 @@ export default function App() {
   const swipe = useSwipeTabs()
   const setLastTab = useSettingsStore((s) => s.setLastTab)
   const hydrateFromProfile = useSettingsStore((s) => s.hydrateFromProfile)
+  const locale = useSettingsStore((s) => s.locale)
+
+  useEffect(() => {
+    document.documentElement.lang = locale
+  }, [locale])
 
   const segment = location.pathname.split('/')[1] || 'solo'
   const tabIndex = TAB_ORDER.findIndex((t) => t === segment)

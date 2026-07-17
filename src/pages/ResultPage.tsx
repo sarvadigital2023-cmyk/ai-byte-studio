@@ -9,11 +9,13 @@ import { ShareKitSection } from '@/components/result/ShareKitSection'
 import { NeonButton } from '@/components/ui/NeonButton'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { formatDate } from '@/utils/format'
+import { useT } from '@/i18n'
 
 /** Result screen: vertical 9:16 video + download / regenerate + Share Kit. */
 export function ResultPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const t = useT()
   const [job, setJob] = useState<GenerationJob | null | undefined>(undefined)
 
   useEffect(() => {
@@ -26,9 +28,9 @@ export function ResultPage() {
     return (
       <EmptyState
         icon="🔍"
-        title="Result not found"
-        hint="This generation may have been deleted or created on another device."
-        ctaLabel="Open history"
+        title={t.result.notFoundTitle}
+        hint={t.result.notFoundHint}
+        ctaLabel={t.result.openHistory}
         onCta={() => navigate('/history')}
       />
     )
@@ -36,7 +38,7 @@ export function ResultPage() {
 
   const download = () => {
     if (!job.resultUrl) {
-      toast('This generation has no video file', 'error')
+      toast(t.result.noVideoFile, 'error')
       return
     }
     const a = document.createElement('a')
@@ -50,7 +52,7 @@ export function ResultPage() {
   // A faithful regeneration needs the source project (characters, script),
   // which lives in the studio stores — reopen the studio and re-run there.
   const regenerate = () => {
-    toast('Project reopened — press Create to regenerate', 'info')
+    toast(t.result.reopened, 'info')
     navigate(`/${job.type}`)
   }
 
@@ -72,7 +74,7 @@ export function ResultPage() {
           type="button"
           onClick={() => navigate(-1)}
           className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5"
-          aria-label="Back"
+          aria-label={t.common.back}
         >
           ←
         </button>
@@ -82,10 +84,10 @@ export function ResultPage() {
 
       <div className="flex gap-3">
         <NeonButton accent="blue" fullWidth onClick={download}>
-          ⬇ Download
+          {t.result.download}
         </NeonButton>
         <NeonButton accent="pink" variant="ghost" fullWidth onClick={regenerate}>
-          ↻ Regenerate
+          {t.result.regenerate}
         </NeonButton>
       </div>
 

@@ -8,14 +8,15 @@ import { toast } from '@/store/toasts'
 import { NeonButton } from '@/components/ui/NeonButton'
 import { Chip } from '@/components/ui/Chip'
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder'
+import { useT } from '@/i18n'
 
-const SCENE_CHIPS = ['Office', 'City street', 'Neon studio', 'Podcast setup']
 const SCENE_MAX = 400
 
 /** Solo Avatar — vertical wizard; each step unlocks when the previous is done. */
 export function SoloPage() {
   const solo = useSoloStore()
   const videoProvider = useSettingsStore((s) => s.videoProvider)
+  const t = useT()
   const fileRef = useRef<HTMLInputElement>(null)
   const selfieRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
@@ -27,10 +28,10 @@ export function SoloPage() {
   const allDone = hasPhoto && hasScene && hasAvatar && hasSpeech
 
   const missing = [
-    !hasPhoto && 'photo',
-    !hasScene && 'scene',
-    !hasAvatar && 'avatar',
-    !hasSpeech && 'speech text or voice',
+    !hasPhoto && t.solo.missingPhoto,
+    !hasScene && t.solo.missingScene,
+    !hasAvatar && t.solo.missingAvatar,
+    !hasSpeech && t.solo.missingSpeech,
   ].filter(Boolean) as string[]
 
   const pickPhoto = async (file: File | undefined | null) => {
@@ -38,7 +39,7 @@ export function SoloPage() {
     try {
       solo.setPhoto(await fileToDataUrl(file))
     } catch {
-      toast('Could not read the image', 'error')
+      toast(t.solo.imageReadError, 'error')
     }
   }
 
@@ -55,12 +56,12 @@ export function SoloPage() {
   return (
     <div className="space-y-4 pb-6">
       {/* Step 1 — Photo */}
-      <StepCard index={1} title="Photo" done={hasPhoto} unlocked>
+      <StepCard index={1} title={t.solo.stepPhoto} done={hasPhoto} unlocked lockedHint={t.solo.completePrevious}>
         {solo.character.photoUrl ? (
           <div className="flex items-center gap-4">
             <img
               src={solo.character.photoUrl}
-              alt="Your photo"
+              alt={t.solo.stepPhoto}
               className="h-24 w-24 rounded-2xl border border-white/10 object-cover"
             />
             <button
@@ -68,7 +69,7 @@ export function SoloPage() {
               onClick={() => fileRef.current?.click()}
               className="min-h-[44px] rounded-full border border-white/15 bg-white/5 px-5 text-sm font-bold"
             >
-              Replace photo
+              {t.solo.replacePhoto}
             </button>
           </div>
         ) : (
@@ -90,15 +91,15 @@ export function SoloPage() {
               }`}
             >
               <span className="text-3xl">📷</span>
-              <p className="text-sm font-bold">Drop a photo or tap to choose</p>
-              <p className="text-xs text-muted">Face close-up, good lighting works best</p>
+              <p className="text-sm font-bold">{t.solo.dropPhoto}</p>
+              <p className="text-xs text-muted">{t.solo.photoHint}</p>
             </div>
             <button
               type="button"
               onClick={() => selfieRef.current?.click()}
               className="mt-3 min-h-[44px] w-full rounded-full border border-neon-blue/50 bg-neon-blue/10 text-sm font-bold text-neon-blue"
             >
-              🤳 Take a selfie
+              {t.solo.takeSelfie}
             </button>
           </>
         )}
@@ -120,20 +121,26 @@ export function SoloPage() {
       </StepCard>
 
       {/* Step 2 — Scene */}
-      <StepCard index={2} title="Scene" done={hasScene} unlocked={hasPhoto}>
+      <StepCard
+        index={2}
+        title={t.solo.stepScene}
+        done={hasScene}
+        unlocked={hasPhoto}
+        lockedHint={t.solo.completePrevious}
+      >
         <textarea
           value={solo.scene}
           maxLength={SCENE_MAX}
           onChange={(e) => solo.setScene(e.target.value)}
           rows={3}
-          placeholder="e.g. A cozy podcast studio with warm lamps, city lights in the window behind me…"
+          placeholder={t.solo.scenePlaceholder}
           className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
         />
         <div className="mt-1 text-right text-[11px] text-muted">
           {solo.scene.length} / {SCENE_MAX}
         </div>
         <div data-swipe-ignore className="no-scrollbar mt-1 flex gap-2 overflow-x-auto pb-1">
-          {SCENE_CHIPS.map((c) => (
+          {t.solo.sceneChips.map((c) => (
             <Chip
               key={c}
               label={c}
@@ -146,13 +153,19 @@ export function SoloPage() {
       </StepCard>
 
       {/* Step 3 — Avatar */}
-      <StepCard index={3} title="Avatar" done={hasAvatar} unlocked={hasPhoto && hasScene}>
+      <StepCard
+        index={3}
+        title={t.solo.stepAvatar}
+        done={hasAvatar}
+        unlocked={hasPhoto && hasScene}
+        lockedHint={t.solo.completePrevious}
+      >
         {hasAvatar ? (
           <div className="flex items-center gap-4">
             {solo.character.avatarUrl ? (
               <img
                 src={solo.character.avatarUrl}
-                alt="Avatar preview"
+                alt={t.solo.stepAvatar}
                 className="h-24 w-24 rounded-2xl border border-neon-blue/40 object-cover shadow-glow-blue"
               />
             ) : (
@@ -161,36 +174,42 @@ export function SoloPage() {
               </div>
             )}
             <div className="flex-1">
-              <p className="text-sm font-bold text-neon-green">Avatar ready ✓</p>
+              <p className="text-sm font-bold text-neon-green">{t.solo.avatarReady}</p>
               <button
                 type="button"
                 onClick={generateAvatar}
                 className="mt-2 min-h-[44px] rounded-full border border-white/15 bg-white/5 px-5 text-sm font-bold"
               >
-                ↻ Regenerate
+                {t.solo.regenerate}
               </button>
             </div>
           </div>
         ) : (
           <NeonButton accent="blue" fullWidth onClick={generateAvatar}>
-            ✨ Generate avatar
+            {t.solo.generateAvatar}
           </NeonButton>
         )}
       </StepCard>
 
       {/* Step 4 — Speech */}
-      <StepCard index={4} title="Speech" done={hasSpeech} unlocked={hasAvatar}>
+      <StepCard
+        index={4}
+        title={t.solo.stepSpeech}
+        done={hasSpeech}
+        unlocked={hasAvatar}
+        lockedHint={t.solo.completePrevious}
+      >
         <textarea
           value={solo.speechText}
           onChange={(e) => solo.setSpeechText(e.target.value)}
           rows={3}
-          placeholder="What should your avatar say? Type the speech here…"
+          placeholder={t.solo.speechPlaceholder}
           className="w-full resize-none rounded-2xl border border-white/10 bg-white/5 p-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
         />
-        <p className="my-2 text-center text-xs text-muted">— or record your voice —</p>
+        <p className="my-2 text-center text-xs text-muted">{t.solo.orRecordVoice}</p>
         <VoiceRecorder
           voiceStatus={solo.character.voiceStatus}
-          voiceName="My voice"
+          voiceName={t.voice.myVoice}
           onVoiceChange={(status, sample) => solo.setVoice(status, sample)}
         />
       </StepCard>
@@ -201,19 +220,19 @@ export function SoloPage() {
           accent="blue"
           fullWidth
           disabled={!allDone}
-          disabledReason={allDone ? undefined : `Missing: ${missing.join(', ')}`}
+          disabledReason={allDone ? undefined : `${t.solo.missingPrefix}${missing.join(', ')}`}
           onClick={() =>
             void startVideoPipeline({
               type: 'solo',
               provider: videoProvider,
-              title: solo.scene ? `Avatar · ${solo.scene.slice(0, 30)}` : 'Solo avatar video',
+              title: solo.scene ? `Avatar · ${solo.scene.slice(0, 30)}` : undefined,
               characters: [solo.character],
               scene: solo.scene,
               speechText: solo.speechText,
             })
           }
         >
-          🎥 Create video
+          {t.solo.createVideo}
         </NeonButton>
       </div>
     </div>
@@ -225,12 +244,14 @@ function StepCard({
   title,
   done,
   unlocked,
+  lockedHint,
   children,
 }: {
   index: number
   title: string
   done: boolean
   unlocked: boolean
+  lockedHint: string
   children: ReactNode
 }) {
   return (
@@ -253,7 +274,7 @@ function StepCard({
           {done ? '✓' : index}
         </span>
         <h2 className="text-sm font-extrabold">{title}</h2>
-        {!unlocked && <span className="ml-auto text-xs text-muted">Complete the previous step</span>}
+        {!unlocked && <span className="ml-auto text-xs text-muted">{lockedHint}</span>}
       </div>
       {children}
     </motion.section>

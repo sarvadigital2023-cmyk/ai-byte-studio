@@ -2,18 +2,20 @@ import { motion } from 'framer-motion'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { TAB_ACCENT, TAB_ORDER, type StudioType } from '@/types'
 import { ACCENT } from '@/utils/accent'
+import { useT } from '@/i18n'
 
-const TAB_META: Record<StudioType, { label: string; icon: string }> = {
-  solo: { label: 'Solo Avatar', icon: '👤' },
-  cinema: { label: 'Cinema Studio', icon: '🎬' },
-  cartoon: { label: 'Cartoon Studio', icon: '🎨' },
+const TAB_ICON: Record<StudioType, string> = {
+  solo: '👤',
+  cinema: '🎬',
+  cartoon: '🎨',
 }
 
 /** Fixed bottom tab bar with a neon indicator that slides between tabs. */
 export function TabBar() {
   const navigate = useNavigate()
   const { pathname } = useLocation()
-  const active = TAB_ORDER.find((t) => pathname.startsWith(`/${t}`))
+  const t = useT()
+  const active = TAB_ORDER.find((tab) => pathname.startsWith(`/${tab}`))
 
   return (
     <nav
@@ -44,8 +46,8 @@ export function TabBar() {
                   isActive ? a.text : 'text-white/50'
                 }`}
               >
-                <span className="text-lg leading-none">{TAB_META[tab].icon}</span>
-                {TAB_META[tab].label}
+                <span className="text-lg leading-none">{TAB_ICON[tab]}</span>
+                {t.tabs[tab]}
               </span>
             </button>
           )

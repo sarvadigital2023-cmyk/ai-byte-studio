@@ -7,6 +7,7 @@ import { VoiceBadge, VoiceRecorder } from '@/components/voice/VoiceRecorder'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ACCENT, type Accent } from '@/utils/accent'
 import type { VoiceSample, VoiceStatus } from '@/types'
+import { useT, fmt } from '@/i18n'
 
 interface CharacterCardProps {
   character: Character
@@ -19,14 +20,6 @@ interface CharacterCardProps {
   onRetryAvatar?: () => void
 }
 
-const AVATAR_STATUS_LABEL: Record<Character['avatarStatus'], string> = {
-  idle: '',
-  queued: 'queued…',
-  generating: 'generating…',
-  done: 'done ✓',
-  error: 'failed',
-}
-
 export function CharacterCard({
   character,
   accent,
@@ -37,16 +30,25 @@ export function CharacterCard({
   onRetryAvatar,
 }: CharacterCardProps) {
   const a = ACCENT[accent]
+  const t = useT()
   const fileRef = useRef<HTMLInputElement>(null)
   const [confirmOpen, setConfirmOpen] = useState(false)
+
+  const statusLabel: Record<Character['avatarStatus'], string> = {
+    idle: '',
+    queued: t.character.statusQueued,
+    generating: t.character.statusGenerating,
+    done: t.character.statusDone,
+    error: t.character.statusFailed,
+  }
 
   const pickPhoto = async (file: File | undefined) => {
     if (!file) return
     try {
       const dataUrl = await fileToDataUrl(file)
-      onUpdate({ photoUrl: dataUrl, avatarStatus: 'idle', avatarUrl: undefined })
+      onUpdate({ photoUrl: dataUrl, avatarStatus: 'idle', avatarUrl: undefined, avatarId: undefined })
     } catch {
-      toast('Could not read the image', 'error')
+      toast(t.solo.imageReadError, 'error')
     }
   }
 
@@ -71,7 +73,7 @@ export function CharacterCard({
           ) : (
             <span className="flex h-full flex-col items-center justify-center gap-1 text-xs text-muted">
               <span className="text-2xl">📷</span>
-              Add photo
+              {t.character.addPhoto}
             </span>
           )}
           {character.avatarStatus !== 'idle' && (
@@ -84,7 +86,7 @@ export function CharacterCard({
                     : `border-white/20 bg-ink/60 text-white/80`
               }`}
             >
-              {AVATAR_STATUS_LABEL[character.avatarStatus]}
+              {statusLabel[character.avatarStatus]}
             </span>
           )}
           <input
@@ -109,7 +111,7 @@ export function CharacterCard({
             <div className="skeleton absolute inset-0" />
           ) : (
             <span className="px-4 text-center text-xs text-muted">
-              Stylized portrait appears here after generation
+              {t.character.portraitHint}
             </span>
           )}
           {character.avatarStatus !== 'idle' && (
@@ -122,7 +124,7 @@ export function CharacterCard({
                     : 'border-white/20 bg-ink/60 text-white/80'
               }`}
             >
-              {AVATAR_STATUS_LABEL[character.avatarStatus]}
+              {statusLabel[character.avatarStatus]}
             </span>
           )}
         </div>
@@ -134,7 +136,7 @@ export function CharacterCard({
           onClick={onRetryAvatar}
           className="mt-2 w-full rounded-full border border-neon-pink/50 bg-neon-pink/10 py-1.5 text-xs font-bold text-neon-pink"
         >
-          ↻ Retry avatar
+          {t.character.retryAvatar}
         </button>
       )}
 
@@ -143,7 +145,7 @@ export function CharacterCard({
         <input
           value={character.name}
           onChange={(e) => onUpdate({ name: e.target.value })}
-          placeholder="Name"
+          placeholder={t.character.namePlaceholder}
           className="min-w-0 flex-1 bg-transparent text-sm font-bold outline-none placeholder:text-white/30"
         />
         <VoiceBadge status={character.voiceStatus} />
@@ -153,14 +155,14 @@ export function CharacterCard({
         <input
           value={character.role}
           onChange={(e) => onUpdate({ role: e.target.value })}
-          placeholder="Role in the scene"
+          placeholder={t.character.rolePlaceholder}
           className="mt-2 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs outline-none placeholder:text-white/30 focus:border-white/25"
         />
       ) : (
         <textarea
           value={character.appearance ?? ''}
           onChange={(e) => onUpdate({ appearance: e.target.value })}
-          placeholder="Detailed appearance: age, hair, outfit, vibe…"
+          placeholder={t.character.appearancePlaceholder}
           rows={3}
           className="mt-2 w-full resize-none rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs outline-none placeholder:text-white/30 focus:border-white/25"
         />
@@ -179,13 +181,15 @@ export function CharacterCard({
         onClick={() => setConfirmOpen(true)}
         className="mt-3 w-full py-1 text-xs font-bold text-white/40"
       >
-        Delete character
+        {t.character.deleteCharacter}
       </button>
 
       <ConfirmDialog
         open={confirmOpen}
-        title={`Delete ${character.name || 'character'}?`}
-        message="The photo, description and recorded voice for this character will be removed."
+        title={fmt(t.character.deleteTitle, {
+          name: character.name || t.character.deleteFallbackName,
+        })}
+        message={t.character.deleteMessage}
         onConfirm={() => {
           setConfirmOpen(false)
           onRemove()

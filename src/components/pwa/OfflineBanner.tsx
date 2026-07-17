@@ -1,9 +1,11 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useOnline } from '@/hooks/useOnline'
+import { useT } from '@/i18n'
 
 /** Branded offline notice — the app shell still works, generation doesn't. */
 export function OfflineBanner() {
   const online = useOnline()
+  const t = useT()
   return (
     <AnimatePresence>
       {!online && (
@@ -15,7 +17,7 @@ export function OfflineBanner() {
           style={{ top: 'calc(env(safe-area-inset-top) + 8px)' }}
         >
           <div className="glass glass-glow-yellow px-4 py-2.5 text-center text-sm font-bold text-neon-yellow">
-            No connection — generation is paused
+            {t.pwa.offline}
           </div>
         </motion.div>
       )}
