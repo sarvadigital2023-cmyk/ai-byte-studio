@@ -1,0 +1,103 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --neon-blue: #00d4ff;
+  --neon-green: #39ff88;
+  --neon-pink: #ff2d95;
+  --neon-yellow: #f5ff3d;
+  --ink: #050508;
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-ink text-white font-sans antialiased;
+  overscroll-behavior-y: none;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+}
+
+/* Subtle film grain over the whole app */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.05;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Glass surface */
+.glass {
+  @apply bg-surface backdrop-blur-xl border border-white/10 rounded-2xl;
+}
+
+.glass-glow-blue {
+  border-color: rgba(0, 212, 255, 0.25);
+  box-shadow: 0 0 28px -10px rgba(0, 212, 255, 0.4);
+}
+.glass-glow-pink {
+  border-color: rgba(255, 45, 149, 0.25);
+  box-shadow: 0 0 28px -10px rgba(255, 45, 149, 0.4);
+}
+.glass-glow-green {
+  border-color: rgba(57, 255, 136, 0.25);
+  box-shadow: 0 0 28px -10px rgba(57, 255, 136, 0.4);
+}
+.glass-glow-yellow {
+  border-color: rgba(245, 255, 61, 0.25);
+  box-shadow: 0 0 28px -10px rgba(245, 255, 61, 0.35);
+}
+
+/* Neon gradient text */
+.neon-text {
+  background: linear-gradient(100deg, var(--neon-blue), var(--neon-pink));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Shimmer skeleton */
+.skeleton {
+  @apply rounded-xl bg-white/5;
+  background-image: linear-gradient(
+    100deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 50%,
+    transparent 70%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s linear infinite;
+}
+
+/* Hide scrollbars on carousels */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Range/video slider baseline */
+input[type='range'] {
+  accent-color: var(--neon-blue);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

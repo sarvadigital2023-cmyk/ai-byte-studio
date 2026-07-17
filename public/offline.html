@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>AI Byte Studio — Offline</title>
+    <meta name="theme-color" content="#050508" />
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #050508;
+        color: #fff;
+        font-family: Manrope, Inter, system-ui, -apple-system, sans-serif;
+        text-align: center;
+        padding: 24px;
+      }
+      .orb {
+        width: 96px; height: 96px; border-radius: 50%;
+        margin: 0 auto 24px;
+        background: radial-gradient(circle at 40% 35%, #00D4FF, #FF2D95 75%);
+        filter: blur(1px);
+        opacity: 0.85;
+        animation: pulse 2.4s ease-in-out infinite;
+      }
+      @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+      h1 { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+      p { color: #8A8F98; font-size: 15px; line-height: 1.5; }
+      button {
+        margin-top: 24px; padding: 14px 28px; border: 1px solid rgba(0,212,255,0.5);
+        border-radius: 999px; background: rgba(0,212,255,0.1); color: #00D4FF;
+        font: inherit; font-weight: 700; cursor: pointer;
+        box-shadow: 0 0 24px -6px rgba(0,212,255,0.55);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="orb"></div>
+      <h1>No connection</h1>
+      <p>AI Byte Studio needs the internet to generate videos.<br />Check your connection and try again.</p>
+      <button onclick="location.reload()">Retry</button>
+    </main>
+  </body>
+</html>
