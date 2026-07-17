@@ -8,6 +8,16 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
  */
 
 export function readRawBody(req: VercelRequest): Promise<Buffer> {
+  // Vercel's Node helpers consume the stream for known content types
+  // (JSON, text, urlencoded, octet-stream) and expose the result on
+  // req.body — reuse it, otherwise the raw stream would be empty.
+  const parsed = (req as { body?: unknown }).body
+  if (parsed !== undefined && parsed !== null) {
+    if (Buffer.isBuffer(parsed)) return Promise.resolve(parsed)
+    if (typeof parsed === 'string') return Promise.resolve(Buffer.from(parsed))
+    return Promise.resolve(Buffer.from(JSON.stringify(parsed)))
+  }
+  // Unparsed content types (multipart uploads, images, audio) still stream.
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
     req.on('data', (c: Buffer) => chunks.push(c))

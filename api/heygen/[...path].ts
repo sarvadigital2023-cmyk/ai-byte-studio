@@ -20,11 +20,17 @@ const UPLOAD_PATHS = [/^v1\/talking_photo$/, /^v1\/asset$/]
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const key = envKey('HEYGEN_API_KEY', 'VITE_HEYGEN_API_KEY')
+  const path = pathFromCatchAll(req)
+
+  // Diagnostic ping: confirms the proxy route itself is deployed.
+  if (path === 'health') {
+    res.status(200).json({ ok: true, provider: 'heygen', keyConfigured: !!key })
+    return
+  }
   if (!key) {
     res.status(503).json({ error: 'HeyGen key is not configured on the server' })
     return
   }
-  const path = pathFromCatchAll(req)
   const isUpload = UPLOAD_PATHS.some((r) => r.test(path))
   await forward(req, res, {
     baseUrl: isUpload ? 'https://upload.heygen.com' : 'https://api.heygen.com',
@@ -33,5 +39,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     headers: { 'x-api-key': key },
   })
 }
-
-export const config = { api: { bodyParser: false } }

@@ -10,13 +10,20 @@ const ALLOW = [
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const key = envKey('RUNWAY_API_KEY', 'VITE_RUNWAY_API_KEY')
+  const path = pathFromCatchAll(req)
+
+  // Diagnostic ping: confirms the proxy route itself is deployed.
+  if (path === 'health') {
+    res.status(200).json({ ok: true, provider: 'runway', keyConfigured: !!key })
+    return
+  }
   if (!key) {
     res.status(503).json({ error: 'Runway key is not configured on the server' })
     return
   }
   await forward(req, res, {
     baseUrl: 'https://api.dev.runwayml.com',
-    path: pathFromCatchAll(req),
+    path,
     allow: ALLOW,
     headers: {
       authorization: `Bearer ${key}`,
@@ -24,5 +31,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     },
   })
 }
-
-export const config = { api: { bodyParser: false } }

@@ -9,16 +9,21 @@ const ALLOW = [
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const key = envKey('ELEVENLABS_API_KEY', 'VITE_ELEVENLABS_API_KEY')
+  const path = pathFromCatchAll(req)
+
+  // Diagnostic ping: confirms the proxy route itself is deployed.
+  if (path === 'health') {
+    res.status(200).json({ ok: true, provider: 'elevenlabs', keyConfigured: !!key })
+    return
+  }
   if (!key) {
     res.status(503).json({ error: 'ElevenLabs key is not configured on the server' })
     return
   }
   await forward(req, res, {
     baseUrl: 'https://api.elevenlabs.io',
-    path: pathFromCatchAll(req),
+    path,
     allow: ALLOW,
     headers: { 'xi-api-key': key },
   })
 }
-
-export const config = { api: { bodyParser: false } }
