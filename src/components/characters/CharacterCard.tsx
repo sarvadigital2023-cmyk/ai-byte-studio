@@ -167,7 +167,11 @@ export function CharacterCard({
       )}
 
       <div className="mt-3">
-        <VoiceRecorder voiceStatus={character.voiceStatus} onVoiceChange={onVoiceChange} />
+        <VoiceRecorder
+          voiceStatus={character.voiceStatus}
+          voiceName={character.name}
+          onVoiceChange={onVoiceChange}
+        />
       </div>
 
       <button

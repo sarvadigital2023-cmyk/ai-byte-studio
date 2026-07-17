@@ -56,8 +56,14 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         navigateFallback: '/index.html',
+        navigateFallbackDenylist: [/^\/api\//],
         cleanupOutdatedCaches: true,
         runtimeCaching: [
+          {
+            // Serverless proxies — always live, never cached
+            urlPattern: /\/api\//,
+            handler: 'NetworkOnly',
+          },
           {
             // Google Fonts stylesheets + font files — cache for offline use
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,

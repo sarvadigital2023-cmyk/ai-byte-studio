@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import type { Character, CartoonStyle, VideoProviderId, VoiceSample } from '@/types'
 import { uid, MAX_CHARACTERS } from '@/types'
 import { getVideoProvider } from '@/services/providers'
+import { toast } from '@/store/toasts'
 
 /**
  * Shared multi-character store factory used by Cinema Studio and
@@ -55,17 +56,25 @@ export function createCastStore(storageKey: string) {
             ),
           }))
           try {
-            const { avatarUrl } = await api.createAvatar({
+            const { avatarId, previewUrl } = await api.createAvatar({
               type: kind,
               character: char,
               style: kind === 'cartoon' ? get().style : undefined,
             })
             set((s) => ({
               characters: s.characters.map((c) =>
-                c.id === id ? { ...c, avatarStatus: 'done', avatarUrl } : c,
+                c.id === id
+                  ? {
+                      ...c,
+                      avatarStatus: 'done',
+                      avatarId,
+                      avatarUrl: previewUrl ?? c.photoUrl,
+                    }
+                  : c,
               ),
             }))
-          } catch {
+          } catch (err) {
+            toast(err instanceof Error ? err.message : 'Avatar generation failed', 'error')
             set((s) => ({
               characters: s.characters.map((c) =>
                 c.id === id ? { ...c, avatarStatus: 'error' } : c,

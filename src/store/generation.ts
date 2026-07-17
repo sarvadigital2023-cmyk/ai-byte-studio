@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import type { GenerationStep } from '@/types'
-import { CancelledError } from '@/services/providers/mock'
+import { CancelledError } from '@/services/providers/errors'
 
 /**
  * Generic pipeline runner behind the full-screen generation overlay.

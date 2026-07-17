@@ -3,8 +3,6 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import type { GenerationJob } from '@/types'
 import { getJob } from '@/services/history'
-import { startVideoPipeline } from '@/services/pipeline'
-import { isMockUrl } from '@/services/providers'
 import { toast } from '@/store/toasts'
 import { VideoPlayer } from '@/components/result/VideoPlayer'
 import { ShareKitSection } from '@/components/result/ShareKitSection'
@@ -37,25 +35,23 @@ export function ResultPage() {
   }
 
   const download = () => {
-    if (!job.resultUrl || isMockUrl(job.resultUrl)) {
-      toast('Demo preview has no downloadable file yet', 'info', {
-        hint: 'Connect the provider API keys to render real videos.',
-      })
+    if (!job.resultUrl) {
+      toast('This generation has no video file', 'error')
       return
     }
     const a = document.createElement('a')
     a.href = job.resultUrl
     a.download = `${job.title.replace(/\s+/g, '-').toLowerCase()}.mp4`
+    a.rel = 'noopener'
+    a.target = '_blank'
     a.click()
   }
 
+  // A faithful regeneration needs the source project (characters, script),
+  // which lives in the studio stores — reopen the studio and re-run there.
   const regenerate = () => {
-    startVideoPipeline({
-      type: job.type,
-      provider: job.provider,
-      title: job.title,
-      characters: [],
-    })
+    toast('Project reopened — press Create to regenerate', 'info')
+    navigate(`/${job.type}`)
   }
 
   return (
@@ -82,7 +78,7 @@ export function ResultPage() {
         </button>
       </div>
 
-      {job.resultUrl && <VideoPlayer src={job.resultUrl} type={job.type} />}
+      {job.resultUrl && <VideoPlayer src={job.resultUrl} />}
 
       <div className="flex gap-3">
         <NeonButton accent="blue" fullWidth onClick={download}>

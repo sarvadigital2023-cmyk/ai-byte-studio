@@ -22,5 +22,6 @@ export function getVideoProvider(id: VideoProviderId): VideoProviderApi {
 
 export const voiceProvider = elevenLabsVoice
 
-export { isMockUrl, CancelledError } from './mock'
-export type { ProviderInfo, VideoProviderApi } from './types'
+export { CancelledError, ProviderError } from './errors'
+export { getKeyStatus, type KeyStatus } from './health'
+export type { ProviderInfo, VideoProviderApi, AudioScene } from './types'

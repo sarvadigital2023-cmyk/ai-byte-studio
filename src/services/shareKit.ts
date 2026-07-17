@@ -2,8 +2,8 @@ import type { ShareKit, ShareKitEntry, SharePlatform, StudioType } from '@/types
 import { SHARE_PLATFORMS } from '@/types'
 
 /**
- * Generates platform-optimized publishing texts. Mocked with templates for
- * now — swap `buildEntry` for an LLM call later without touching the UI.
+ * Generates platform-optimized publishing texts from templates.
+ * `buildEntry` can be swapped for an LLM call without touching the UI.
  */
 
 const TYPE_LABEL: Record<StudioType, string> = {

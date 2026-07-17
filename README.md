@@ -23,19 +23,22 @@ Plus: `/result/:id` (player + Share Kit), `/history` (Supabase-backed), `/settin
 - **Zustand** — per-tab state, persisted; survives tab switching and reloads
 - **vite-plugin-pwa (Workbox)** — installable PWA, offline app shell, auto-update toast
 - **Supabase** — magic-link auth, `projects` / `generations` / `profiles` with RLS, private storage buckets
-- **Providers**: HeyGen, Runway (video) · ElevenLabs (voice) — behind a swappable
-  service layer (`src/services/providers/`), currently in **mock mode** with realistic
-  step delays, so the whole UX is demoable without keys.
+- **Providers**: HeyGen, Runway (video) · ElevenLabs (voice) — real API integrations
+  behind a service layer (`src/services/providers/`). Browser code calls same-origin
+  serverless proxies (`api/heygen`, `api/runway`, `api/elevenlabs`) that inject the
+  API keys server-side, so keys never appear in the client bundle.
 
 ## Project structure
 
 ```
+api/            # Vercel serverless proxies: heygen/, runway/, elevenlabs/,
+                # health (key status), media (allowlisted CDN fetch)
 src/
   pages/        # solo, cinema, cartoon, result, settings, history
   components/   # ui kit, layout, voice, characters, generation, result, pwa
   store/        # zustand: settings, solo, cast (cinema+cartoon), generation, toasts
   hooks/        # voice recorder, swipe tabs, install prompt, online status
-  services/     # provider clients (mock ⇄ real), pipeline, share kit, history, supabase
+  services/     # provider API clients, pipeline, share kit, history, supabase
   utils/        # accent palette, image compression, clipboard, formatting
 supabase/
   migrations/   # schema + RLS + storage policies
@@ -43,20 +46,39 @@ scripts/
   generate-icons.mjs  # dependency-free PNG icon/splash generator (runs on build)
 ```
 
+## Generation pipelines
+
+- **HeyGen** (recommended): photo → talking-photo asset → ElevenLabs speech
+  (cloned voice or default) → HeyGen `v2/video/generate` performs lipsync +
+  gesture sync server-side → polled until the vertical 720×1280 video is ready.
+  Cinema/Cartoon scripts are split into "Name: line" scenes, one per character.
+- **Runway**: portraits via `text_to_image` (gen4_image), video via
+  `image_to_video` (gen4_turbo). Note: Runway's public API has no audio-driven
+  lipsync — videos are prompt-driven animations; use HeyGen for speech-synced
+  avatars.
+- **ElevenLabs**: Instant Voice Cloning (`v1/voices/add`) per character +
+  multilingual TTS for every scripted line.
+
 ## Environment variables
 
 All secrets live **only** in environment variables — never in the repo.
 
-| Variable | Purpose |
-| --- | --- |
-| `VITE_SUPABASE_URL` | Supabase project URL |
-| `VITE_SUPABASE_ANON_KEY` | Supabase anon (publishable) key |
-| `VITE_HEYGEN_API_KEY` | HeyGen API key |
-| `VITE_RUNWAY_API_KEY` | Runway API key |
-| `VITE_ELEVENLABS_API_KEY` | ElevenLabs API key |
+| Variable | Purpose | Read by |
+| --- | --- | --- |
+| `VITE_SUPABASE_URL` | Supabase project URL | Browser (public by design) |
+| `VITE_SUPABASE_ANON_KEY` | Supabase anon (publishable) key | Browser (public by design) |
+| `VITE_HEYGEN_API_KEY` | HeyGen API key | Serverless proxies only |
+| `VITE_RUNWAY_API_KEY` | Runway API key | Serverless proxies only |
+| `VITE_ELEVENLABS_API_KEY` | ElevenLabs API key | Serverless proxies only |
 
-Locally: `cp .env.example .env` and fill in values.
-Without keys the app runs in **local demo mode** (mock pipelines, local history).
+The provider keys are read exclusively by the `api/` functions via
+`process.env` — client code never references them, so Vite does not embed
+them in the public bundle. (`HEYGEN_API_KEY` etc. without the `VITE_` prefix
+are also accepted.) Without a required key, generation stops with an explicit
+error toast — there are no fallbacks.
+
+Locally: `cp .env.example .env`, then use `vercel dev` (not plain `vite dev`)
+so the `/api` proxies run alongside the app.
 
 ## Deploy to Vercel
 

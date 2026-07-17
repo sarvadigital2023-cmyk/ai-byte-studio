@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useVoiceRecorder } from '@/hooks/useVoiceRecorder'
-import { voiceProvider, PROVIDERS } from '@/services/providers'
+import { voiceProvider, getKeyStatus } from '@/services/providers'
 import { toast, toastMissingKey } from '@/store/toasts'
 import { formatDuration } from '@/utils/format'
 import type { VoiceSample, VoiceStatus } from '@/types'
@@ -10,6 +10,8 @@ import type { Accent } from '@/utils/accent'
 interface VoiceRecorderProps {
   voiceStatus: VoiceStatus
   accent?: Accent
+  /** Name for the cloned voice on ElevenLabs (usually the character name). */
+  voiceName?: string
   onVoiceChange: (status: VoiceStatus, sample?: VoiceSample) => void
 }
 
@@ -17,7 +19,7 @@ interface VoiceRecorderProps {
  * Shared voice recording + cloning block: record with live waveform,
  * listen back, re-record, clone via ElevenLabs.
  */
-export function VoiceRecorder({ voiceStatus, onVoiceChange }: VoiceRecorderProps) {
+export function VoiceRecorder({ voiceStatus, voiceName, onVoiceChange }: VoiceRecorderProps) {
   const rec = useVoiceRecorder()
   const [cloning, setCloning] = useState(false)
 
@@ -27,14 +29,22 @@ export function VoiceRecorder({ voiceStatus, onVoiceChange }: VoiceRecorderProps
 
   const handleClone = async () => {
     if (!rec.audioUrl) return
-    if (!PROVIDERS.elevenlabs.isConfigured()) toastMissingKey('ElevenLabs')
+    const keys = await getKeyStatus()
+    if (!keys.elevenlabs) {
+      toastMissingKey('ElevenLabs')
+      return
+    }
     setCloning(true)
     try {
-      await voiceProvider.cloneVoice(rec.audioUrl)
+      const { voiceId } = await voiceProvider.cloneVoice(
+        rec.audioUrl,
+        voiceName?.trim() || 'AI Byte voice',
+      )
       onVoiceChange('cloned', {
         url: rec.audioUrl,
         durationSec: rec.durationSec,
         recordedAt: new Date().toISOString(),
+        voiceId,
       })
       toast('Voice cloned', 'success')
     } catch (err) {

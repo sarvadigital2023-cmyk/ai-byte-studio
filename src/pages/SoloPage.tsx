@@ -43,11 +43,12 @@ export function SoloPage() {
   }
 
   const generateAvatar = () => {
-    startSoloAvatarPipeline({
+    void startSoloAvatarPipeline({
       provider: videoProvider,
       character: solo.character,
       scene: solo.scene,
-      onAvatarReady: (url) => solo.setAvatar('done', url),
+      onAvatarReady: (avatarId, previewUrl) =>
+        solo.setAvatar('done', previewUrl ?? solo.character.photoUrl, avatarId),
     })
   }
 
@@ -148,9 +149,17 @@ export function SoloPage() {
       <StepCard index={3} title="Avatar" done={hasAvatar} unlocked={hasPhoto && hasScene}>
         {hasAvatar ? (
           <div className="flex items-center gap-4">
-            <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-neon-blue/40 bg-gradient-to-br from-neon-blue/25 via-ink to-neon-pink/20 text-3xl shadow-glow-blue">
-              👤
-            </div>
+            {solo.character.avatarUrl ? (
+              <img
+                src={solo.character.avatarUrl}
+                alt="Avatar preview"
+                className="h-24 w-24 rounded-2xl border border-neon-blue/40 object-cover shadow-glow-blue"
+              />
+            ) : (
+              <div className="flex h-24 w-24 items-center justify-center rounded-2xl border border-neon-blue/40 bg-gradient-to-br from-neon-blue/25 via-ink to-neon-pink/20 text-3xl shadow-glow-blue">
+                👤
+              </div>
+            )}
             <div className="flex-1">
               <p className="text-sm font-bold text-neon-green">Avatar ready ✓</p>
               <button
@@ -181,6 +190,7 @@ export function SoloPage() {
         <p className="my-2 text-center text-xs text-muted">— or record your voice —</p>
         <VoiceRecorder
           voiceStatus={solo.character.voiceStatus}
+          voiceName="My voice"
           onVoiceChange={(status, sample) => solo.setVoice(status, sample)}
         />
       </StepCard>
@@ -193,7 +203,7 @@ export function SoloPage() {
           disabled={!allDone}
           disabledReason={allDone ? undefined : `Missing: ${missing.join(', ')}`}
           onClick={() =>
-            startVideoPipeline({
+            void startVideoPipeline({
               type: 'solo',
               provider: videoProvider,
               title: solo.scene ? `Avatar · ${solo.scene.slice(0, 30)}` : 'Solo avatar video',

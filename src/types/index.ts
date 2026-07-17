@@ -14,6 +14,8 @@ export interface VoiceSample {
   url: string
   durationSec: number
   recordedAt: string
+  /** ElevenLabs voice id after cloning. */
+  voiceId?: string
 }
 
 export type AvatarStatus = 'idle' | 'queued' | 'generating' | 'done' | 'error'
@@ -30,7 +32,10 @@ export interface Character {
   voiceStatus: VoiceStatus
   voiceSample?: VoiceSample
   avatarStatus: AvatarStatus
+  /** Displayable avatar preview (photo, generated portrait). */
   avatarUrl?: string
+  /** Provider-side avatar reference (e.g. HeyGen talking_photo_id). */
+  avatarId?: string
 }
 
 export type CartoonStyle = 'pixar3d' | 'anime' | 'flat2d' | 'claymation'

@@ -77,7 +77,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
   }, [store.script, names, scriptFilled, a.text])
 
   const handleCreate = () => {
-    startVideoPipeline({
+    void startVideoPipeline({
       type: kind,
       provider: videoProvider,
       title: kind === 'cinema' ? 'My movie' : 'My cartoon',

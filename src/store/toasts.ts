@@ -40,10 +40,10 @@ export function toast(
   useToastStore.getState().push({ message, tone, ...opts })
 }
 
-/** Standard warning when a provider API key is missing from the environment. */
+/** Error shown when a required provider API key is missing from the environment. */
 export function toastMissingKey(providerName: string): void {
-  toast(`${providerName} key is not configured`, 'warning', {
-    hint: 'Add it in Vercel → Project Settings → Environment Variables, then redeploy. Running in demo mode.',
+  toast(`${providerName} key is not configured`, 'error', {
+    hint: 'Add it in Vercel → Project Settings → Environment Variables, then redeploy.',
     durationMs: 6000,
   })
 }

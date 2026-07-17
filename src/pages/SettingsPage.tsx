@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import type { ConnectionTestState, ProviderId, VideoProviderId } from '@/types'
-import { PROVIDERS } from '@/services/providers'
+import { PROVIDERS, getKeyStatus, type KeyStatus } from '@/services/providers'
 import { supabase, isCloudEnabled, signInWithMagicLink, signOut } from '@/services/supabase'
 import { useSettingsStore } from '@/store/settings'
 import { toast } from '@/store/toasts'
@@ -24,9 +24,14 @@ export function SettingsPage() {
     elevenlabs: 'idle',
   })
   const [testMessages, setTestMessages] = useState<Partial<Record<ProviderId, string>>>({})
+  const [keys, setKeys] = useState<KeyStatus | null>(null)
   const [email, setEmail] = useState('')
   const [userEmail, setUserEmail] = useState<string | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
+
+  useEffect(() => {
+    void getKeyStatus(true).then(setKeys)
+  }, [])
 
   useEffect(() => {
     if (!supabase) return
@@ -88,7 +93,7 @@ export function SettingsPage() {
         {(Object.keys(PROVIDERS) as ProviderId[]).map((id, i) => {
           const p = PROVIDERS[id]
           const meta = PROVIDER_META[id]
-          const configured = p.isConfigured()
+          const configured = keys?.[id] ?? false
           const test = tests[id]
           return (
             <motion.div
@@ -107,12 +112,14 @@ export function SettingsPage() {
                   </div>
                   <span
                     className={`shrink-0 rounded-full border px-2.5 py-1 text-[11px] font-bold ${
-                      configured
-                        ? 'border-neon-green/50 text-neon-green'
-                        : 'border-neon-pink/50 text-neon-pink'
+                      keys === null
+                        ? 'border-white/20 text-white/50'
+                        : configured
+                          ? 'border-neon-green/50 text-neon-green'
+                          : 'border-neon-pink/50 text-neon-pink'
                     }`}
                   >
-                    {configured ? 'detected ✓' : 'not set ✕'}
+                    {keys === null ? 'checking…' : configured ? 'detected ✓' : 'not set ✕'}
                   </span>
                 </div>
                 <div className="mt-3 flex items-center gap-3">

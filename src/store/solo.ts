@@ -22,7 +22,7 @@ interface SoloState {
   setPhoto: (dataUrl: string | undefined) => void
   setScene: (scene: string) => void
   setSpeechText: (text: string) => void
-  setAvatar: (status: Character['avatarStatus'], url?: string) => void
+  setAvatar: (status: Character['avatarStatus'], url?: string, avatarId?: string) => void
   setVoice: (status: Character['voiceStatus'], sample?: VoiceSample) => void
   reset: () => void
 }
@@ -41,13 +41,19 @@ export const useSoloStore = create<SoloState>()(
             // changing the photo invalidates a previously generated avatar
             avatarStatus: 'idle',
             avatarUrl: undefined,
+            avatarId: undefined,
           },
         })),
       setScene: (scene) => set({ scene }),
       setSpeechText: (speechText) => set({ speechText }),
-      setAvatar: (status, url) =>
+      setAvatar: (status, url, avatarId) =>
         set((s) => ({
-          character: { ...s.character, avatarStatus: status, avatarUrl: url ?? s.character.avatarUrl },
+          character: {
+            ...s.character,
+            avatarStatus: status,
+            avatarUrl: url ?? s.character.avatarUrl,
+            avatarId: avatarId ?? s.character.avatarId,
+          },
         })),
       setVoice: (status, sample) =>
         set((s) => ({
