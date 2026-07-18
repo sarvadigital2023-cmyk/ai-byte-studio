@@ -34,33 +34,44 @@ function safeDecode(s: string): string {
   }
 }
 
-/**
- * Extracts the sub-path after `/api/<routePrefix>/` directly from `req.url`,
- * using plain string operations — deliberately NOT the `URL` constructor.
- *
- * History: first read `req.query.path` (Next.js-style catch-all params),
- * which Vercel's plain Node Functions never populated — always empty in
- * production. Switched to `new URL(req.url, 'http://localhost')`, which
- * then threw "The string did not match the expected pattern." in
- * production for real provider calls (not reproducible locally), most
- * likely a WHATWG URL parser edge case specific to the runtime. Splitting
- * `req.url` by hand sidesteps both: it has no dependency on how Vercel
- * populates params and no dependency on any URL-parsing engine at all.
- */
-export function pathFromCatchAll(req: VercelRequest, routePrefix: string): string {
-  const raw = req.url ?? '/'
-  const pathname = raw.split('?', 1)[0] ?? raw
-  const marker = `/api/${routePrefix}/`
-  const idx = pathname.indexOf(marker)
-  if (idx === -1) return ''
-  return safeDecode(pathname.slice(idx + marker.length).replace(/\/+$/, ''))
-}
-
-/** The real query string (if any), taken straight from `req.url` — no URL(). */
-export function queryString(req: VercelRequest): string {
+function rawQueryPairs(req: VercelRequest): string[] {
   const raw = req.url ?? ''
   const qIdx = raw.indexOf('?')
-  return qIdx === -1 ? '' : raw.slice(qIdx)
+  return qIdx === -1 ? [] : raw.slice(qIdx + 1).split('&').filter(Boolean)
+}
+
+/**
+ * Reads the target sub-path from the `?path=` query parameter.
+ *
+ * History: this proxy used to live at a dynamic catch-all route
+ * (`api/heygen/[...path].ts`) and read the sub-path out of the URL's
+ * pathname. Every version of that — `req.query.path` (never populated by
+ * Vercel's plain Node Functions), then `new URL(req.url, ...)`, then manual
+ * pathname splitting — hit some failure specific to those three dynamic
+ * routes in production ("The string did not match the expected pattern.")
+ * that was never reproducible locally and never happened on the sibling
+ * non-dynamic functions (`/api/health`, `/api/media`), which have always
+ * worked reliably. Rather than keep chasing that gap, the dynamic route is
+ * gone: `/api/heygen` etc. are now plain functions, identical in kind to
+ * the ones that were never affected, and the sub-path travels as an
+ * ordinary `?path=` query value instead of a URL path segment.
+ */
+export function pathFromQuery(req: VercelRequest): string {
+  for (const pair of rawQueryPairs(req)) {
+    const eq = pair.indexOf('=')
+    const key = eq === -1 ? pair : pair.slice(0, eq)
+    if (key === 'path') return safeDecode(eq === -1 ? '' : pair.slice(eq + 1))
+  }
+  return ''
+}
+
+/** The real query string to forward upstream — everything except our own `path` param. */
+export function queryString(req: VercelRequest): string {
+  const rest = rawQueryPairs(req).filter((pair) => {
+    const eq = pair.indexOf('=')
+    return (eq === -1 ? pair : pair.slice(0, eq)) !== 'path'
+  })
+  return rest.length ? `?${rest.join('&')}` : ''
 }
 
 export interface ForwardOptions {

@@ -1,5 +1,5 @@
 import type { ProviderInfo, VoiceProviderApi } from './types'
-import { apiFetch } from './http'
+import { apiFetch, proxyPath } from './http'
 import { ProviderError } from './errors'
 
 /**
@@ -17,7 +17,7 @@ export const elevenLabsInfo: ProviderInfo = {
   name: 'ElevenLabs',
   async testConnection() {
     try {
-      const res = await apiFetch<{ subscription?: { tier?: string } }>(`${BASE}/v1/user`)
+      const res = await apiFetch<{ subscription?: { tier?: string } }>(proxyPath(BASE, 'v1/user'))
       const tier = res.subscription?.tier
       return { ok: true, message: tier ? `Connected · ${tier} plan` : 'ElevenLabs API reachable' }
     } catch (err) {
@@ -32,7 +32,7 @@ export const elevenLabsVoice: VoiceProviderApi = {
     const form = new FormData()
     form.append('name', name)
     form.append('files', sample, 'sample.webm')
-    const res = await apiFetch<{ voice_id?: string }>(`${BASE}/v1/voices/add`, {
+    const res = await apiFetch<{ voice_id?: string }>(proxyPath(BASE, 'v1/voices/add'), {
       method: 'POST',
       body: form,
       signal,
@@ -43,7 +43,7 @@ export const elevenLabsVoice: VoiceProviderApi = {
 
   async synthesizeSpeech(text: string, voiceId?: string, signal?: AbortSignal): Promise<Blob> {
     return apiFetch<Blob>(
-      `${BASE}/v1/text-to-speech/${voiceId ?? DEFAULT_VOICE_ID}`,
+      proxyPath(BASE, `v1/text-to-speech/${voiceId ?? DEFAULT_VOICE_ID}`),
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },

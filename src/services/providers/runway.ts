@@ -5,7 +5,7 @@ import type {
   RenderRequest,
   VideoProviderApi,
 } from './types'
-import { apiFetch, poll } from './http'
+import { apiFetch, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
 
 /**
@@ -26,7 +26,7 @@ export const runwayInfo: ProviderInfo = {
   name: 'Runway',
   async testConnection() {
     try {
-      await apiFetch(`${BASE}/v1/organization`)
+      await apiFetch(proxyPath(BASE, 'v1/organization'))
       return { ok: true, message: 'Runway API reachable' }
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : 'Connection failed' }
@@ -44,7 +44,7 @@ interface TaskResponse {
 async function waitForTask(taskId: string, signal?: AbortSignal): Promise<string> {
   return poll(
     async () => {
-      const task = await apiFetch<TaskResponse>(`${BASE}/v1/tasks/${taskId}`, { signal })
+      const task = await apiFetch<TaskResponse>(proxyPath(BASE, `v1/tasks/${taskId}`), { signal })
       if (task.status === 'SUCCEEDED') {
         const url = task.output?.[0]
         if (!url) throw new ProviderError('Runway task returned no output')
@@ -76,7 +76,7 @@ export const runwayVideo: VideoProviderApi = {
       ]
         .filter(Boolean)
         .join('. ')
-      const task = await apiFetch<TaskResponse>(`${BASE}/v1/text_to_image`, {
+      const task = await apiFetch<TaskResponse>(proxyPath(BASE, 'v1/text_to_image'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
@@ -107,7 +107,7 @@ export const runwayVideo: VideoProviderApi = {
     ]
       .filter(Boolean)
       .join('. ')
-    const task = await apiFetch<TaskResponse>(`${BASE}/v1/image_to_video`, {
+    const task = await apiFetch<TaskResponse>(proxyPath(BASE, 'v1/image_to_video'), {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({

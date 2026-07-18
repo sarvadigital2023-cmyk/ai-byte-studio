@@ -1,9 +1,12 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromCatchAll, withErrorHandling } from '../_proxy.js'
+import { envKey, forward, pathFromQuery, withErrorHandling } from './_proxy.js'
 
 /**
  * HeyGen proxy. Media uploads go to upload.heygen.com, everything else to
- * api.heygen.com — both behind the same /api/heygen/* route.
+ * api.heygen.com — both behind /api/heygen?path=<endpoint>.
+ *
+ * A plain, non-dynamic function (not a /api/heygen/[...path] catch-all
+ * route) — see the comment on pathFromQuery in _proxy.ts for why.
  */
 
 const ALLOW = [
@@ -20,7 +23,7 @@ const UPLOAD_PATHS = [/^v1\/talking_photo$/, /^v1\/asset$/]
 
 export default withErrorHandling(async (req: VercelRequest, res: VercelResponse): Promise<void> => {
   const key = envKey('HEYGEN_API_KEY', 'VITE_HEYGEN_API_KEY')
-  const path = pathFromCatchAll(req, 'heygen')
+  const path = pathFromQuery(req)
 
   // Diagnostic ping: confirms the proxy route itself is deployed.
   if (path === 'health') {

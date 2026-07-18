@@ -5,7 +5,7 @@ import type {
   RenderRequest,
   VideoProviderApi,
 } from './types'
-import { apiFetch, dataUrlToBlob, mediaProxyUrl, poll } from './http'
+import { apiFetch, dataUrlToBlob, mediaProxyUrl, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
 
 /**
@@ -22,7 +22,7 @@ export const heygenInfo: ProviderInfo = {
   async testConnection() {
     try {
       const res = await apiFetch<{ data?: { remaining_quota?: number } }>(
-        `${BASE}/v2/user/remaining_quota`,
+        proxyPath(BASE, 'v2/user/remaining_quota'),
       )
       const quota = res.data?.remaining_quota
       return {
@@ -41,7 +41,7 @@ interface TalkingPhotoResponse {
 }
 
 async function createTalkingPhoto(image: Blob, signal?: AbortSignal): Promise<AvatarResult> {
-  const res = await apiFetch<TalkingPhotoResponse>(`${BASE}/v1/talking_photo`, {
+  const res = await apiFetch<TalkingPhotoResponse>(proxyPath(BASE, 'v1/talking_photo'), {
     method: 'POST',
     headers: { 'content-type': image.type || 'image/jpeg' },
     body: image,
@@ -60,7 +60,7 @@ async function generatePhotoAvatar(
     .filter(Boolean)
     .join('. ')
   const gen = await apiFetch<{ data?: { generation_id?: string } }>(
-    `${BASE}/v2/photo_avatar/photo/generate`,
+    proxyPath(BASE, 'v2/photo_avatar/photo/generate'),
     {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
@@ -79,7 +79,7 @@ async function generatePhotoAvatar(
     async () => {
       const status = await apiFetch<{
         data?: { status?: string; image_url_list?: string[]; msg?: string }
-      }>(`${BASE}/v2/photo_avatar/generation/${generationId}`, { signal: req.signal })
+      }>(proxyPath(BASE, `v2/photo_avatar/generation/${generationId}`), { signal: req.signal })
       const s = status.data?.status
       if (s === 'success') {
         const url = status.data?.image_url_list?.[0]
@@ -118,7 +118,7 @@ export const heygenVideo: VideoProviderApi = {
 
   async prepareSpeechAudio(audio: Blob, signal?: AbortSignal): Promise<string> {
     const res = await apiFetch<{ data?: { id?: string; asset_id?: string } }>(
-      `${BASE}/v1/asset`,
+      proxyPath(BASE, 'v1/asset'),
       {
         method: 'POST',
         headers: { 'content-type': audio.type || 'audio/mpeg' },
@@ -146,7 +146,7 @@ export const heygenVideo: VideoProviderApi = {
       },
     }))
     const res = await apiFetch<{ data?: { video_id?: string } }>(
-      `${BASE}/v2/video/generate`,
+      proxyPath(BASE, 'v2/video/generate'),
       {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
@@ -167,7 +167,10 @@ export const heygenVideo: VideoProviderApi = {
       async () => {
         const res = await apiFetch<{
           data?: { status?: string; video_url?: string; error?: { message?: string } | null }
-        }>(`${BASE}/v1/video_status.get?video_id=${encodeURIComponent(jobId)}`, { signal })
+        }>(
+          proxyPath(BASE, 'v1/video_status.get', `&video_id=${encodeURIComponent(jobId)}`),
+          { signal },
+        )
         const status = res.data?.status
         if (status === 'completed') {
           const url = res.data?.video_url

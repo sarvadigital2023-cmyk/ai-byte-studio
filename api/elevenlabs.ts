@@ -1,5 +1,11 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromCatchAll, withErrorHandling } from '../_proxy.js'
+import { envKey, forward, pathFromQuery, withErrorHandling } from './_proxy.js'
+
+/**
+ * ElevenLabs proxy, reached at /api/elevenlabs?path=<endpoint>.
+ * A plain, non-dynamic function — see the comment on pathFromQuery in
+ * _proxy.ts for why this isn't a /api/elevenlabs/[...path] catch-all route.
+ */
 
 const ALLOW = [
   /^v1\/user$/,
@@ -9,7 +15,7 @@ const ALLOW = [
 
 export default withErrorHandling(async (req: VercelRequest, res: VercelResponse): Promise<void> => {
   const key = envKey('ELEVENLABS_API_KEY', 'VITE_ELEVENLABS_API_KEY')
-  const path = pathFromCatchAll(req, 'elevenlabs')
+  const path = pathFromQuery(req)
 
   // Diagnostic ping: confirms the proxy route itself is deployed.
   if (path === 'health') {

@@ -1,21 +1,47 @@
 import { CancelledError, ProviderError } from './errors'
 
+/**
+ * Builds the proxy call for one provider endpoint: `/api/heygen?path=v1/user`
+ * rather than `/api/heygen/v1/user`. The path travels as an ordinary query
+ * value, not a URL path segment — see the comment on pathFromQuery in
+ * api/_proxy.ts for why: the dynamic catch-all route this used to be
+ * (`api/heygen/[...path].ts`) failed in production in a way its non-dynamic
+ * siblings (`/api/health`, `/api/media`) never did, so the dynamic route is
+ * gone rather than further patched.
+ */
+export function proxyPath(base: string, subPath: string, extraQuery = ''): string {
+  return `${base}?path=${encodeURIComponent(subPath)}${extraQuery}`
+}
+
+/**
+ * Resolves a same-origin path to a full absolute URL via plain string
+ * concatenation — no `URL`/`fetch` relative-reference resolution involved,
+ * so there is nothing for any URL-parsing engine to reject.
+ */
+function absoluteUrl(path: string): string {
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(path)) return path // already absolute
+  if (typeof window === 'undefined') return path
+  const origin = window.location.origin
+  return path.startsWith('/') ? origin + path : `${origin}/${path}`
+}
+
 /** Fetch through the same-origin serverless proxies with error extraction. */
 export async function apiFetch<T = unknown>(
   input: string,
   init: RequestInit = {},
   parse: 'json' | 'blob' = 'json',
 ): Promise<T> {
+  const url = absoluteUrl(input)
   let res: Response
   try {
-    res = await fetch(input, init)
+    res = await fetch(url, init)
   } catch (err) {
     if (init.signal?.aborted) throw new CancelledError()
     const name = err instanceof Error ? err.name : 'Error'
     const message = err instanceof Error ? err.message : String(err)
     // Include the request URL and error name: a bare browser message like
     // "Load failed" or a URL-parser error is meaningless without them.
-    throw new ProviderError(`${name}: ${message} (fetching ${input})`)
+    throw new ProviderError(`${name}: ${message} (fetching ${url})`)
   }
   if (!res.ok) {
     let detail = ''
@@ -31,11 +57,17 @@ export async function apiFetch<T = unknown>(
       /* body unreadable */
     }
     throw new ProviderError(
-      (detail.slice(0, 300) || `Request failed (${res.status})`) + ` [${input}]`,
+      (detail.slice(0, 300) || `Request failed (${res.status})`) + ` [${url}]`,
       res.status,
     )
   }
-  return (parse === 'json' ? res.json() : res.blob()) as Promise<T>
+  try {
+    return (parse === 'json' ? await res.json() : await res.blob()) as T
+  } catch (err) {
+    const name = err instanceof Error ? err.name : 'Error'
+    const message = err instanceof Error ? err.message : String(err)
+    throw new ProviderError(`${name}: ${message} while reading response body [${url}]`)
+  }
 }
 
 function extractMessage(json: Record<string, unknown>): string | undefined {
