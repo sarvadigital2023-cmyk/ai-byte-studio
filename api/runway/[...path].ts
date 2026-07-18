@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromCatchAll } from '../_proxy'
+import { envKey, forward, pathFromCatchAll } from '../_proxy.js'
 
 const ALLOW = [
   /^v1\/organization$/,

@@ -6,10 +6,10 @@
   "description": "AI Byte Studio — mobile-first PWA for generating AI avatar videos",
   "scripts": {
     "dev": "vite",
-    "build": "npm run icons && tsc -b && vite build",
+    "build": "npm run icons && tsc -b && tsc -p tsconfig.api.json && vite build",
     "icons": "node scripts/generate-icons.mjs",
     "preview": "vite preview",
-    "typecheck": "tsc -b --noEmit"
+    "typecheck": "tsc -b --noEmit && tsc -p tsconfig.api.json"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.10",

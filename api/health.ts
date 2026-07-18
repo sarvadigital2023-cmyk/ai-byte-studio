@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey } from './_proxy'
+import { envKey } from './_proxy.js'
 
 /**
  * Reports which provider keys are configured on the server — booleans only,
