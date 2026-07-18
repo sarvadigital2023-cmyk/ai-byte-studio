@@ -7,6 +7,8 @@ import type {
 } from './types'
 import { apiFetch, dataUrlToBlob, mediaProxyUrl, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
+import { compositeSceneWithPhoto } from './sceneComposite'
+import { toast } from '@/store/toasts'
 
 /**
  * HeyGen client (via the /api/heygen proxy).
@@ -101,9 +103,29 @@ export const heygenVideo: VideoProviderApi = {
 
   async createAvatar(req: AvatarRequest): Promise<AvatarResult> {
     if (req.character.photoUrl) {
-      const image = await dataUrlToBlob(req.character.photoUrl)
+      // HeyGen's talking_photo API animates the uploaded photo as-is — it has
+      // no way to change its background on its own. If a scene was chosen,
+      // regenerate the photo in that scene first (via Runway), preserving
+      // the person's identity, so the scene actually shows up in the avatar.
+      let sourcePhoto = req.character.photoUrl
+      if (req.scene?.trim()) {
+        try {
+          sourcePhoto = await compositeSceneWithPhoto(
+            req.character.photoUrl,
+            req.scene.trim(),
+            req.signal,
+          )
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'Could not generate the scene', 'warning', {
+            hint: 'Using your original photo instead. Scene generation needs a configured Runway API key.',
+          })
+        }
+      }
+      const image = sourcePhoto.startsWith('data:')
+        ? await dataUrlToBlob(sourcePhoto)
+        : await apiFetch<Blob>(mediaProxyUrl(sourcePhoto), { signal: req.signal }, 'blob')
       const result = await createTalkingPhoto(image, req.signal)
-      return { ...result, previewUrl: result.previewUrl ?? req.character.photoUrl }
+      return { ...result, previewUrl: result.previewUrl ?? sourcePhoto }
     }
     if (req.character.appearance) {
       const { imageUrl } = await generatePhotoAvatar(req)

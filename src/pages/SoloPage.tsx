@@ -8,6 +8,7 @@ import { toast } from '@/store/toasts'
 import { NeonButton } from '@/components/ui/NeonButton'
 import { Chip } from '@/components/ui/Chip'
 import { VoiceRecorder } from '@/components/voice/VoiceRecorder'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useT } from '@/i18n'
 
 const SCENE_MAX = 400
@@ -20,12 +21,24 @@ export function SoloPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const selfieRef = useRef<HTMLInputElement>(null)
   const [dragOver, setDragOver] = useState(false)
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const hasPhoto = !!solo.character.photoUrl
   const hasScene = solo.scene.trim().length > 0
   const hasAvatar = solo.character.avatarStatus === 'done'
   const hasSpeech = solo.speechText.trim().length > 0 || solo.character.voiceStatus !== 'none'
   const allDone = hasPhoto && hasScene && hasAvatar && hasSpeech
+  const hasAnything = hasPhoto || hasScene || hasAvatar || solo.speechText.trim().length > 0
+
+  const resetAll = () => {
+    solo.reset()
+    // Clear the native file input value too — otherwise re-picking the exact
+    // same file afterwards may not fire a change event in some browsers.
+    if (fileRef.current) fileRef.current.value = ''
+    if (selfieRef.current) selfieRef.current.value = ''
+    setConfirmReset(false)
+    toast(t.common.startedOver, 'success')
+  }
 
   const missing = [
     !hasPhoto && t.solo.missingPhoto,
@@ -55,6 +68,18 @@ export function SoloPage() {
 
   return (
     <div className="space-y-4 pb-6">
+      {hasAnything && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="min-h-[36px] rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-bold text-white/60"
+          >
+            {t.common.startOver}
+          </button>
+        </div>
+      )}
+
       {/* Step 1 — Photo */}
       <StepCard index={1} title={t.solo.stepPhoto} done={hasPhoto} unlocked lockedHint={t.solo.completePrevious}>
         {solo.character.photoUrl ? (
@@ -235,6 +260,15 @@ export function SoloPage() {
           {t.solo.createVideo}
         </NeonButton>
       </div>
+
+      <ConfirmDialog
+        open={confirmReset}
+        title={t.common.startOverTitle}
+        message={t.common.startOverMessage}
+        confirmLabel={t.common.startOver}
+        onConfirm={resetAll}
+        onCancel={() => setConfirmReset(false)}
+      />
     </div>
   )
 }

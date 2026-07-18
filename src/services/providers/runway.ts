@@ -7,6 +7,8 @@ import type {
 } from './types'
 import { apiFetch, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
+import { compositeSceneWithPhoto } from './sceneComposite'
+import { toast } from '@/store/toasts'
 
 /**
  * Runway client (via the /api/runway proxy).
@@ -64,8 +66,24 @@ export const runwayVideo: VideoProviderApi = {
   name: 'Runway',
 
   async createAvatar(req: AvatarRequest): Promise<AvatarResult> {
-    // Photo-based characters: the image itself is the avatar source.
+    // Photo-based characters: the image itself is the avatar source. If a
+    // scene was chosen, regenerate the photo in that scene first (identity
+    // preserved via a reference image) — otherwise the scene never shows up.
     if (req.character.photoUrl) {
+      if (req.scene?.trim()) {
+        try {
+          const imageUrl = await compositeSceneWithPhoto(
+            req.character.photoUrl,
+            req.scene.trim(),
+            req.signal,
+          )
+          return { avatarId: imageUrl, previewUrl: imageUrl }
+        } catch (err) {
+          toast(err instanceof Error ? err.message : 'Could not generate the scene', 'warning', {
+            hint: 'Using your original photo instead.',
+          })
+        }
+      }
       return { avatarId: req.character.photoUrl, previewUrl: req.character.photoUrl }
     }
     // Described characters (Cartoon Studio): generate a stylized portrait.

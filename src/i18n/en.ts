@@ -22,6 +22,11 @@ export const en = {
     back: 'Back',
     tryAgain: 'Try again',
     add: 'Add',
+    startOver: '↻ Start over',
+    startOverTitle: 'Start over?',
+    startOverMessage: 'This clears the photo, scene, avatar and speech so you can begin a fresh generation.',
+    startOverMessageCast: 'This clears all characters, the script and generated avatars so you can begin a fresh generation.',
+    startedOver: 'Cleared — ready for a new generation',
   },
   solo: {
     stepPhoto: 'Photo',

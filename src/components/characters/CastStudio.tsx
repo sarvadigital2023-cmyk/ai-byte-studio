@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import type { StoreApi, UseBoundStore } from 'zustand'
 import type { CastState } from '@/store/cast'
@@ -8,10 +8,12 @@ import { CharacterCard } from './CharacterCard'
 import { NeonButton } from '@/components/ui/NeonButton'
 import { Chip } from '@/components/ui/Chip'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ACCENT, type Accent } from '@/utils/accent'
 import { countWords, estimateSpeechDuration, formatDuration } from '@/utils/format'
 import { CARTOON_STYLES, MAX_CHARACTERS, MIN_CHARACTERS } from '@/types'
 import { useT, fmt } from '@/i18n'
+import { toast } from '@/store/toasts'
 
 interface CastStudioProps {
   kind: 'cinema' | 'cartoon'
@@ -28,6 +30,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
   const store = useStore()
   const videoProvider = useSettingsStore((s) => s.videoProvider)
   const t = useT()
+  const [confirmReset, setConfirmReset] = useState(false)
 
   const count = store.characters.length
   const enough = count >= MIN_CHARACTERS
@@ -89,8 +92,28 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
     })
   }
 
+  const hasAnything = count > 0 || store.script.trim().length > 0
+
+  const resetAll = () => {
+    store.reset()
+    setConfirmReset(false)
+    toast(t.common.startedOver, 'success')
+  }
+
   return (
     <div className="space-y-6 pb-6">
+      {hasAnything && (
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={() => setConfirmReset(true)}
+            className="min-h-[36px] rounded-full border border-white/10 bg-white/5 px-3.5 text-xs font-bold text-white/60"
+          >
+            {t.common.startOver}
+          </button>
+        </div>
+      )}
+
       {/* Style picker — cartoon only, chosen once for the whole project */}
       {kind === 'cartoon' && (
         <section>
@@ -219,6 +242,15 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
           {kind === 'cinema' ? t.cast.createMovie : t.cast.createCartoon}
         </NeonButton>
       </section>
+
+      <ConfirmDialog
+        open={confirmReset}
+        title={t.common.startOverTitle}
+        message={t.common.startOverMessageCast}
+        confirmLabel={t.common.startOver}
+        onConfirm={resetAll}
+        onCancel={() => setConfirmReset(false)}
+      />
     </div>
   )
 }
