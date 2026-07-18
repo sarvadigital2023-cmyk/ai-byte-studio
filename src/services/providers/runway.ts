@@ -7,7 +7,7 @@ import type {
 } from './types'
 import { apiFetch, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
-import { compositeSceneWithPhoto } from './sceneComposite'
+import { compositeSceneWithPhoto } from './runwaySceneComposite'
 import { toast } from '@/store/toasts'
 
 /**

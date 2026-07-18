@@ -7,7 +7,6 @@ import type {
 } from './types'
 import { apiFetch, dataUrlToBlob, mediaProxyUrl, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
-import { compositeSceneWithPhoto } from './sceneComposite'
 import { toast } from '@/store/toasts'
 
 /**
@@ -103,29 +102,22 @@ export const heygenVideo: VideoProviderApi = {
 
   async createAvatar(req: AvatarRequest): Promise<AvatarResult> {
     if (req.character.photoUrl) {
-      // HeyGen's talking_photo API animates the uploaded photo as-is — it has
-      // no way to change its background on its own. If a scene was chosen,
-      // regenerate the photo in that scene first (via Runway), preserving
-      // the person's identity, so the scene actually shows up in the avatar.
-      let sourcePhoto = req.character.photoUrl
+      // HeyGen's talking_photo API animates the uploaded photo exactly as
+      // provided — it has no endpoint of its own to regenerate or replace a
+      // photo's background from a text description. Provider calls must stay
+      // within the provider the user selected, so this deliberately never
+      // calls Runway (or anything else) to work around that: if a scene was
+      // chosen, we say so plainly instead of silently ignoring it or
+      // reaching for another provider's API behind the user's back.
       if (req.scene?.trim()) {
-        try {
-          sourcePhoto = await compositeSceneWithPhoto(
-            req.character.photoUrl,
-            req.scene.trim(),
-            req.signal,
-          )
-        } catch (err) {
-          toast(err instanceof Error ? err.message : 'Could not generate the scene', 'warning', {
-            hint: 'Using your original photo instead. Scene generation needs a configured Runway API key.',
-          })
-        }
+        toast('HeyGen uses your photo as uploaded', 'info', {
+          hint: 'HeyGen animates the original photo and background as-is — it cannot generate a new scene. Choose Runway as the video provider for scene generation.',
+          durationMs: 6000,
+        })
       }
-      const image = sourcePhoto.startsWith('data:')
-        ? await dataUrlToBlob(sourcePhoto)
-        : await apiFetch<Blob>(mediaProxyUrl(sourcePhoto), { signal: req.signal }, 'blob')
+      const image = await dataUrlToBlob(req.character.photoUrl)
       const result = await createTalkingPhoto(image, req.signal)
-      return { ...result, previewUrl: result.previewUrl ?? sourcePhoto }
+      return { ...result, previewUrl: result.previewUrl ?? req.character.photoUrl }
     }
     if (req.character.appearance) {
       const { imageUrl } = await generatePhotoAvatar(req)

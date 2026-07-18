@@ -2,14 +2,15 @@ import { apiFetch, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
 
 /**
- * Regenerates a photo with a new scene/background via Runway's gen4_image,
- * using the original photo as an identity reference (`referenceImages`,
- * `@Person` in the prompt). Shared by both HeyGen and Runway avatar
- * creation: HeyGen's talking_photo API has no way to swap a photo's
- * background on its own, and Runway's photo-based avatar path previously
- * used the uploaded photo unchanged, ignoring the scene entirely. This is
- * why a chosen scene ("Office", "Neon studio", …) never showed up in either
- * provider's generated avatar.
+ * Runway-only. Regenerates a photo with a new scene/background via Runway's
+ * gen4_image, using the original photo as an identity reference
+ * (`referenceImages`, `@Person` in the prompt).
+ *
+ * Import this ONLY from runway.ts. Provider clients must never call another
+ * provider's proxy — a previous version of this file was shared between
+ * heygen.ts and runway.ts, which made HeyGen silently call Runway's API
+ * whenever a scene was set, even when the user had selected HeyGen as the
+ * video provider. Each provider's calls must stay within that provider.
  */
 
 const RUNWAY_BASE = '/api/runway'
