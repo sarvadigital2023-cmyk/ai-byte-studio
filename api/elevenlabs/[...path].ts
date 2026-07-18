@@ -9,7 +9,7 @@ const ALLOW = [
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const key = envKey('ELEVENLABS_API_KEY', 'VITE_ELEVENLABS_API_KEY')
-  const path = pathFromCatchAll(req)
+  const path = pathFromCatchAll(req, 'elevenlabs')
 
   // Diagnostic ping: confirms the proxy route itself is deployed.
   if (path === 'health') {

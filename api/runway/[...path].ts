@@ -10,7 +10,7 @@ const ALLOW = [
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const key = envKey('RUNWAY_API_KEY', 'VITE_RUNWAY_API_KEY')
-  const path = pathFromCatchAll(req)
+  const path = pathFromCatchAll(req, 'runway')
 
   // Diagnostic ping: confirms the proxy route itself is deployed.
   if (path === 'health') {

@@ -20,7 +20,7 @@ const UPLOAD_PATHS = [/^v1\/talking_photo$/, /^v1\/asset$/]
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const key = envKey('HEYGEN_API_KEY', 'VITE_HEYGEN_API_KEY')
-  const path = pathFromCatchAll(req)
+  const path = pathFromCatchAll(req, 'heygen')
 
   // Diagnostic ping: confirms the proxy route itself is deployed.
   if (path === 'health') {

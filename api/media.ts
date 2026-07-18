@@ -14,8 +14,9 @@ const ALLOWED_HOST_SUFFIXES = [
 ]
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  const raw = req.query.url
-  const target = Array.isArray(raw) ? raw[0] : raw
+  // Parsed from req.url directly rather than req.query — see the comment on
+  // pathFromCatchAll in _proxy.ts for why req.query isn't relied upon here.
+  const target = new URL(req.url ?? '/', 'http://localhost').searchParams.get('url')
   if (!target) {
     res.status(400).json({ error: 'Missing url parameter' })
     return

@@ -26,22 +26,31 @@ export function readRawBody(req: VercelRequest): Promise<Buffer> {
   })
 }
 
-export function pathFromCatchAll(req: VercelRequest): string {
-  const segs = req.query.path
-  return Array.isArray(segs) ? segs.join('/') : (segs ?? '')
+function requestUrl(req: VercelRequest): URL {
+  return new URL(req.url ?? '/', 'http://localhost')
 }
 
-/** Rebuild the query string, excluding the catch-all `path` param. */
+/**
+ * Extracts the sub-path after `/api/<routePrefix>/` directly from `req.url`.
+ *
+ * NOT read from `req.query.path`: that relies on Vercel populating dynamic
+ * catch-all segments into `req.query` the way Next.js does, which is not
+ * guaranteed for plain (non-Next.js) Vercel Functions — in production this
+ * came back empty for every request, so every call silently 403'd or fell
+ * through to the wrong branch. Parsing `req.url` ourselves has no such
+ * dependency and behaves identically locally and in production.
+ */
+export function pathFromCatchAll(req: VercelRequest, routePrefix: string): string {
+  const { pathname } = requestUrl(req)
+  const marker = `/api/${routePrefix}/`
+  const idx = pathname.indexOf(marker)
+  if (idx === -1) return ''
+  return decodeURIComponent(pathname.slice(idx + marker.length)).replace(/\/+$/, '')
+}
+
+/** The real query string (if any), taken straight from the request URL. */
 export function queryString(req: VercelRequest): string {
-  const params = new URLSearchParams()
-  for (const [k, v] of Object.entries(req.query)) {
-    if (k === 'path') continue
-    for (const val of Array.isArray(v) ? v : [v]) {
-      if (val !== undefined) params.append(k, val)
-    }
-  }
-  const s = params.toString()
-  return s ? `?${s}` : ''
+  return requestUrl(req).search
 }
 
 export interface ForwardOptions {
