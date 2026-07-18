@@ -2,13 +2,37 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useRegisterSW } from 'virtual:pwa-register/react'
 import { useT } from '@/i18n'
 
-/** Non-intrusive "Update available → Refresh" toast on new deployments. */
+const UPDATE_CHECK_INTERVAL_MS = 60_000
+
+/**
+ * Non-intrusive "Update available → Refresh" toast on new deployments.
+ *
+ * An installed iOS PWA is rarely "reloaded" from the network the way a
+ * regular browser tab is — resuming it from the app switcher doesn't
+ * trigger the browser's normal service-worker update check, so a fix can
+ * ship and the phone keeps running an old cached bundle indefinitely.
+ * registerType 'autoUpdate' (vite.config.ts) removes the need for the user
+ * to tap anything once an update IS detected; polling registration.update()
+ * here makes sure that detection actually happens promptly instead of
+ * waiting for whatever infrequent check the platform does on its own.
+ */
 export function UpdateToast() {
   const t = useT()
   const {
     needRefresh: [needRefresh, setNeedRefresh],
     updateServiceWorker,
-  } = useRegisterSW({ immediate: true })
+  } = useRegisterSW({
+    immediate: true,
+    onRegisteredSW(_url, registration) {
+      if (!registration) return
+      const check = () => void registration.update()
+      const interval = setInterval(check, UPDATE_CHECK_INTERVAL_MS)
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') check()
+      })
+      window.addEventListener('beforeunload', () => clearInterval(interval))
+    },
+  })
 
   return (
     <AnimatePresence>
