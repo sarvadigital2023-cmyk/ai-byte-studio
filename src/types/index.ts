@@ -36,6 +36,9 @@ export interface Character {
   avatarUrl?: string
   /** Provider-side avatar reference (e.g. HeyGen talking_photo_id). */
   avatarId?: string
+  /** Which video provider produced `avatarId` — a HeyGen id is meaningless to
+   * Runway and vice versa, so the pipeline regenerates on a mismatch. */
+  avatarProvider?: VideoProviderId
 }
 
 export type CartoonStyle = 'pixar3d' | 'anime' | 'flat2d' | 'claymation'
@@ -46,6 +49,11 @@ export const CARTOON_STYLES: { id: CartoonStyle; label: string }[] = [
   { id: 'flat2d', label: '2D Flat' },
   { id: 'claymation', label: 'Claymation' },
 ]
+
+/** Human-readable style name for provider prompts ("Pixar 3D", not "pixar3d"). */
+export function cartoonStyleLabel(id: CartoonStyle): string {
+  return CARTOON_STYLES.find((s) => s.id === id)?.label ?? id
+}
 
 export type GenerationStepStatus = 'pending' | 'active' | 'done' | 'error'
 

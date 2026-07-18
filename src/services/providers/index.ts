@@ -21,6 +21,7 @@ export function getVideoProvider(id: VideoProviderId): VideoProviderApi {
 }
 
 export const voiceProvider = elevenLabsVoice
+export { premadeVoiceForIndex } from './elevenlabs'
 
 export { CancelledError, ProviderError } from './errors'
 export { getKeyStatus, type KeyStatus } from './health'

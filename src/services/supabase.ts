@@ -18,6 +18,14 @@ export async function getCurrentUserId(): Promise<string | null> {
   return data.user?.id ?? null
 }
 
+/** The current session's access token, forwarded to the /api proxies so the
+ * server can verify the caller. Null when Supabase is off or nobody is signed in. */
+export async function getAccessToken(): Promise<string | null> {
+  if (!supabase) return null
+  const { data } = await supabase.auth.getSession()
+  return data.session?.access_token ?? null
+}
+
 export async function signInWithMagicLink(email: string): Promise<{ error?: string }> {
   if (!supabase) return { error: 'Supabase is not configured' }
   const { error } = await supabase.auth.signInWithOtp({

@@ -78,6 +78,8 @@ export const ru: Dict = {
     reasonInProgress: 'Идёт генерация…',
     reasonGenerateFirst: 'Сначала сгенерируйте все аватары',
     reasonWriteScript: 'Сначала напишите сценарий',
+    reasonAddPhotos: 'Сначала добавьте фото каждому персонажу',
+    reasonAddAppearance: 'Сначала опишите каждого персонажа',
     avatarFailed: 'Не удалось сгенерировать аватар',
   },
   character: {
@@ -145,6 +147,9 @@ export const ru: Dict = {
     regenerate: '↻ Пересоздать',
     reopened: 'Проект снова открыт — нажмите «Создать», чтобы пересоздать',
     noVideoFile: 'У этой генерации нет видеофайла',
+    expiredTitle: 'Ссылка на видео истекла',
+    expiredHint:
+      'Ссылки провайдеров на видео временные и через некоторое время перестают работать. Пересоздайте, чтобы получить новую.',
   },
   share: {
     title: 'Share Kit',
@@ -217,5 +222,20 @@ export const ru: Dict = {
     missingKey: 'Ключ {p} не настроен',
     missingKeyHint:
       'Добавьте его в Vercel → Project Settings → Environment Variables и сделайте redeploy.',
+    signInRequired: 'Войдите, чтобы генерировать',
+    signInRequiredHint:
+      'Генерация расходует платные кредиты провайдеров, поэтому нужен вход в аккаунт. Откройте Настройки и войдите.',
+  },
+  conn: {
+    reachable: '{p} API доступен',
+    connectedQuota: 'Подключено · квота {n}',
+    connectedPlan: 'Подключено · план {plan}',
+    failed: 'Не удалось подключиться',
+  },
+  providers: {
+    sceneFailed: 'Не удалось сгенерировать сцену',
+    sceneFailedHint: 'Используется исходное фото.',
+    runwaySilentNotice:
+      'Runway создаёт немое видео по текстовому описанию — записанный голос и текст речи не синхронизируются с губами. Для говорящих аватаров выберите HeyGen.',
   },
 }

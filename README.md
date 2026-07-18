@@ -31,8 +31,9 @@ Plus: `/result/:id` (player + Share Kit), `/history` (Supabase-backed), `/settin
 ## Project structure
 
 ```
-api/            # Vercel serverless proxies: heygen/, runway/, elevenlabs/,
-                # health (key status), media (allowlisted CDN fetch)
+api/            # Vercel serverless proxies (flat functions, ?path= sub-path):
+                # heygen.ts, runway.ts, elevenlabs.ts, health.ts (key status),
+                # media.ts (HeyGen-only image fetch), _proxy.ts (shared guard)
 src/
   pages/        # solo, cinema, cartoon, result, settings, history
   components/   # ui kit, layout, voice, characters, generation, result, pwa
@@ -79,6 +80,24 @@ error toast — there are no fallbacks.
 
 Locally: `cp .env.example .env`, then use `vercel dev` (not plain `vite dev`)
 so the `/api` proxies run alongside the app.
+
+## Securing the proxies (important for a public deployment)
+
+The `/api/*` provider proxies spend the owner's **paid** HeyGen / Runway /
+ElevenLabs credits, so they must not be an open relay. Every request that
+reaches a provider is guarded (`api/_proxy.ts → guardRequest`) by:
+
+- **Same-origin check** — browser requests from other sites are rejected.
+- **In-memory rate limiting** — ~40 req/min per IP per warm instance.
+- **Auth (when Supabase is configured)** — the caller must send a valid
+  Supabase session token, verified server-side against `…/auth/v1/user`
+  using only the public anon key (no service-role key). The browser attaches
+  this automatically once signed in; generation shows a "sign in" prompt
+  otherwise.
+
+**Enable Supabase to fully lock down a public deployment.** Without it the
+server has no way to verify callers, so only the same-origin + rate-limit
+layers apply. The `api/health` ping stays public (it returns only booleans).
 
 ## Deploy to Vercel
 

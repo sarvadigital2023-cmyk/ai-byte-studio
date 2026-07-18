@@ -73,12 +73,9 @@ export default defineConfig({
               expiration: { maxEntries: 20, maxAgeSeconds: 60 * 60 * 24 * 365 },
             },
           },
-          {
-            // AI providers and Supabase — never cached, always live
-            urlPattern:
-              /^https:\/\/((.*\.)?(supabase\.(co|in))|api\.heygen\.com|api\.(runwayml|dev\.runwayml)\.com|api\.elevenlabs\.io)\/.*/i,
-            handler: 'NetworkOnly',
-          },
+          // Provider/Supabase APIs are never hit directly from the browser
+          // (everything goes through the same-origin /api proxies, already
+          // NetworkOnly above), so no direct-host rule is needed here.
         ],
       },
       devOptions: {

@@ -1,10 +1,13 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 /**
- * Shared helper for the provider proxies. Keys never leave the server:
- * the browser calls /api/<provider>/..., the proxy injects the API key and
- * forwards the request. Endpoint allowlists keep the proxies from being
- * used as open relays.
+ * Shared helpers for the provider proxies. API keys never leave the server:
+ * the browser calls /api/<provider>?path=..., the proxy injects the key and
+ * forwards the request. Two layers keep the proxies from being abused as a
+ * free relay for the owner's paid API credits:
+ *   1. `guardRequest` — same-origin check, in-memory rate limit, and (when
+ *      Supabase is configured on the server) a required, verified auth token.
+ *   2. per-endpoint allowlists in each handler.
  */
 
 export function readRawBody(req: VercelRequest): Promise<Buffer> {
@@ -41,20 +44,10 @@ function rawQueryPairs(req: VercelRequest): string[] {
 }
 
 /**
- * Reads the target sub-path from the `?path=` query parameter.
- *
- * History: this proxy used to live at a dynamic catch-all route
- * (`api/heygen/[...path].ts`) and read the sub-path out of the URL's
- * pathname. Every version of that — `req.query.path` (never populated by
- * Vercel's plain Node Functions), then `new URL(req.url, ...)`, then manual
- * pathname splitting — hit some failure specific to those three dynamic
- * routes in production ("The string did not match the expected pattern.")
- * that was never reproducible locally and never happened on the sibling
- * non-dynamic functions (`/api/health`, `/api/media`), which have always
- * worked reliably. Rather than keep chasing that gap, the dynamic route is
- * gone: `/api/heygen` etc. are now plain functions, identical in kind to
- * the ones that were never affected, and the sub-path travels as an
- * ordinary `?path=` query value instead of a URL path segment.
+ * Reads the target sub-path from the `?path=` query parameter, by hand —
+ * deliberately not via the URL constructor (see git history: dynamic
+ * catch-all routes + `new URL(req.url)` failed in production in ways that
+ * were never reproducible locally; plain string ops on `req.url` are immune).
  */
 export function pathFromQuery(req: VercelRequest): string {
   for (const pair of rawQueryPairs(req)) {
@@ -74,6 +67,115 @@ export function queryString(req: VercelRequest): string {
   return rest.length ? `?${rest.join('&')}` : ''
 }
 
+export function envKey(...names: string[]): string | undefined {
+  for (const n of names) {
+    const v = process.env[n]
+    if (v && v.trim()) return v.trim()
+  }
+  return undefined
+}
+
+// ---------- abuse protection ----------
+
+function header(req: VercelRequest, name: string): string | undefined {
+  const v = req.headers[name]
+  return Array.isArray(v) ? v[0] : v
+}
+
+function clientIp(req: VercelRequest): string {
+  const fwd = header(req, 'x-forwarded-for')
+  return (fwd?.split(',')[0].trim() || header(req, 'x-real-ip') || 'unknown').slice(0, 64)
+}
+
+/** Host of an absolute URL, parsed without the URL constructor. */
+function hostOf(value: string): string {
+  const noScheme = value.replace(/^[a-z][a-z0-9+.-]*:\/\//i, '')
+  return noScheme.split('/')[0].toLowerCase()
+}
+
+/**
+ * Rejects browser requests coming from a different site. A same-origin fetch
+ * either omits the Origin header or sends this deployment's own host, so a
+ * present-but-foreign Origin is a cross-site call we don't serve. (Does not
+ * stop non-browser clients like curl — auth + rate limiting cover those.)
+ */
+function sameOriginOk(req: VercelRequest): boolean {
+  const origin = header(req, 'origin')
+  if (!origin) return true
+  const host = header(req, 'x-forwarded-host') ?? header(req, 'host') ?? ''
+  return hostOf(origin) === host.toLowerCase()
+}
+
+// Per-instance sliding-window rate limit. Best-effort: state is per warm
+// serverless instance and resets on cold start, but it caps bulk abuse cheaply
+// with no external dependency.
+const RATE_MAX = 40
+const RATE_WINDOW_MS = 60_000
+const hits = new Map<string, number[]>()
+
+function rateLimited(ip: string): boolean {
+  const now = Date.now()
+  const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS)
+  recent.push(now)
+  hits.set(ip, recent)
+  if (hits.size > 5000) hits.clear() // crude memory bound
+  return recent.length > RATE_MAX
+}
+
+/**
+ * Verifies the caller's Supabase auth token when Supabase is configured on
+ * the server. Uses only the public anon key + the user's own JWT — no
+ * service-role key. When Supabase is NOT configured we cannot verify anyone,
+ * so the request is allowed (rate limit + same-origin still apply); this is
+ * documented in README/DEPLOYMENT as the reason to enable Supabase auth for
+ * a truly locked-down public deployment.
+ */
+async function verifyAuth(
+  req: VercelRequest,
+): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+  const supaUrl = envKey('SUPABASE_URL', 'VITE_SUPABASE_URL')
+  const supaAnon = envKey('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')
+  if (!supaUrl || !supaAnon) return { ok: true }
+
+  const auth = header(req, 'authorization')
+  if (!auth || !/^Bearer\s+/i.test(auth)) {
+    return { ok: false, status: 401, message: 'Sign in required to use generation' }
+  }
+  const token = auth.replace(/^Bearer\s+/i, '')
+  try {
+    const r = await fetch(`${supaUrl.replace(/\/+$/, '')}/auth/v1/user`, {
+      headers: { apikey: supaAnon, authorization: `Bearer ${token}` },
+    })
+    if (r.ok) return { ok: true }
+    return { ok: false, status: 401, message: 'Your session is invalid or expired' }
+  } catch {
+    return { ok: false, status: 503, message: 'Could not verify your session' }
+  }
+}
+
+/**
+ * Runs all abuse checks. Returns true if the request may proceed; otherwise it
+ * has already sent a 4xx/5xx JSON response and the caller must return.
+ */
+export async function guardRequest(req: VercelRequest, res: VercelResponse): Promise<boolean> {
+  if (!sameOriginOk(req)) {
+    res.status(403).json({ error: 'Cross-origin requests are not allowed' })
+    return false
+  }
+  if (rateLimited(clientIp(req))) {
+    res.status(429).json({ error: 'Too many requests — slow down and try again shortly' })
+    return false
+  }
+  const auth = await verifyAuth(req)
+  if (!auth.ok) {
+    res.status(auth.status).json({ error: auth.message })
+    return false
+  }
+  return true
+}
+
+// ---------- upstream forwarding ----------
+
 export interface ForwardOptions {
   baseUrl: string
   path: string
@@ -92,11 +194,10 @@ export async function forward(
   }
 
   const method = req.method ?? 'GET'
-  const body =
-    method === 'GET' || method === 'HEAD' ? undefined : await readRawBody(req)
+  const body = method === 'GET' || method === 'HEAD' ? undefined : await readRawBody(req)
 
   const headers: Record<string, string> = { ...opts.headers }
-  const contentType = req.headers['content-type']
+  const contentType = header(req, 'content-type')
   if (contentType) headers['content-type'] = contentType
 
   const upstream = await fetch(`${opts.baseUrl}/${opts.path}${queryString(req)}`, {
@@ -111,19 +212,10 @@ export async function forward(
   res.send(Buffer.from(await upstream.arrayBuffer()))
 }
 
-export function envKey(...names: string[]): string | undefined {
-  for (const n of names) {
-    const v = process.env[n]
-    if (v && v.trim()) return v.trim()
-  }
-  return undefined
-}
-
 /**
- * Wraps a handler so ANY unexpected throw (bad input, upstream network
- * failure, a bug) becomes a clean, readable JSON error instead of Vercel's
- * generic crash page or an unhandled rejection — so the client always has
- * something diagnosable to show instead of an opaque platform error.
+ * Wraps a handler so any unexpected throw becomes a clean JSON error instead
+ * of Vercel's crash page. The full error is logged server-side; the client
+ * only receives a generic message so internal details aren't leaked.
  */
 export function withErrorHandling(
   handler: (req: VercelRequest, res: VercelResponse) => Promise<void> | void,
@@ -132,10 +224,9 @@ export function withErrorHandling(
     try {
       await handler(req, res)
     } catch (err) {
+      console.error('[api] unhandled error:', err)
       if (res.headersSent) return
-      const message = err instanceof Error ? err.message : String(err)
-      const name = err instanceof Error ? err.name : undefined
-      res.status(500).json({ error: message, errorType: name })
+      res.status(500).json({ error: 'Internal server error' })
     }
   }
 }

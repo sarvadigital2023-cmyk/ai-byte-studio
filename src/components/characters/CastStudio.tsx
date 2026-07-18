@@ -11,7 +11,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ACCENT, type Accent } from '@/utils/accent'
 import { countWords, estimateSpeechDuration, formatDuration } from '@/utils/format'
-import { CARTOON_STYLES, MAX_CHARACTERS, MIN_CHARACTERS } from '@/types'
+import { CARTOON_STYLES, MAX_CHARACTERS, MIN_CHARACTERS, cartoonStyleLabel } from '@/types'
 import { useT, fmt } from '@/i18n'
 import { toast } from '@/store/toasts'
 
@@ -39,19 +39,35 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
   const words = countWords(store.script)
   const estimate = estimateSpeechDuration(store.script)
 
+  // Cinema needs a photo per character; Cartoon needs an appearance description.
+  // Generation just errors per-card without these, so gate the button instead.
+  const missingInputs =
+    kind === 'cinema'
+      ? store.characters.some((c) => !c.photoUrl)
+      : store.characters.some((c) => !c.appearance?.trim())
+  const missingInputsReason = missingInputs
+    ? kind === 'cinema'
+      ? t.cast.reasonAddPhotos
+      : t.cast.reasonAddAppearance
+    : undefined
+
   const createDisabledReason = !enough
     ? fmt(t.cast.reasonAddMore, { n: MIN_CHARACTERS - count, min: MIN_CHARACTERS })
-    : !allGenerated
-      ? t.cast.reasonGenerateFirst
-      : !scriptFilled
-        ? t.cast.reasonWriteScript
-        : undefined
+    : missingInputsReason
+      ? missingInputsReason
+      : !allGenerated
+        ? t.cast.reasonGenerateFirst
+        : !scriptFilled
+          ? t.cast.reasonWriteScript
+          : undefined
 
   const generateDisabledReason = !enough
     ? fmt(t.cast.reasonNeedRange, { min: MIN_CHARACTERS, max: MAX_CHARACTERS, n: count })
-    : store.generatingAll
-      ? t.cast.reasonInProgress
-      : undefined
+    : missingInputsReason
+      ? missingInputsReason
+      : store.generatingAll
+        ? t.cast.reasonInProgress
+        : undefined
 
   // Highlight "Name:" line starts in the script preview
   const names = useMemo(
@@ -88,7 +104,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
       title: kind === 'cinema' ? t.gen.myMovie : t.gen.myCartoon,
       characters: store.characters,
       script: store.script,
-      style: kind === 'cartoon' ? store.style : undefined,
+      style: kind === 'cartoon' ? cartoonStyleLabel(store.style) : undefined,
     })
   }
 
@@ -222,7 +238,7 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
         <NeonButton
           accent={accent}
           fullWidth
-          disabled={!enough || store.generatingAll}
+          disabled={!enough || missingInputs || store.generatingAll}
           disabledReason={generateDisabledReason}
           onClick={() => void store.generateAll(videoProvider, kind)}
         >

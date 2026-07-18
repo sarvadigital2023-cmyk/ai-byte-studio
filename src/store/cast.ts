@@ -1,10 +1,11 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { Character, CartoonStyle, VideoProviderId, VoiceSample } from '@/types'
-import { uid, MAX_CHARACTERS } from '@/types'
+import { uid, MAX_CHARACTERS, cartoonStyleLabel } from '@/types'
 import { getVideoProvider } from '@/services/providers'
 import { toast } from '@/store/toasts'
 import { getT } from '@/i18n'
+import { persistableCharacter } from './persistVoice'
 
 /**
  * Shared multi-character store factory used by Cinema Studio and
@@ -60,7 +61,7 @@ export function createCastStore(storageKey: string) {
             const { avatarId, previewUrl } = await api.createAvatar({
               type: kind,
               character: char,
-              style: kind === 'cartoon' ? get().style : undefined,
+              style: kind === 'cartoon' ? cartoonStyleLabel(get().style) : undefined,
             })
             set((s) => ({
               characters: s.characters.map((c) =>
@@ -69,6 +70,7 @@ export function createCastStore(storageKey: string) {
                       ...c,
                       avatarStatus: 'done',
                       avatarId,
+                      avatarProvider: provider,
                       avatarUrl: previewUrl ?? c.photoUrl,
                     }
                   : c,
@@ -140,12 +142,7 @@ export function createCastStore(storageKey: string) {
       {
         name: storageKey,
         partialize: (s) => ({
-          characters: s.characters.map((c) => ({
-            ...c,
-            voiceSample: undefined,
-            // an interrupted generation resumes as idle after reload
-            avatarStatus: (c.avatarStatus === 'done' ? 'done' : 'idle') as Character['avatarStatus'],
-          })),
+          characters: s.characters.map(persistableCharacter),
           script: s.script,
           style: s.style,
         }),
