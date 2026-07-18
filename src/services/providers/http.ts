@@ -11,9 +11,11 @@ export async function apiFetch<T = unknown>(
     res = await fetch(input, init)
   } catch (err) {
     if (init.signal?.aborted) throw new CancelledError()
-    throw new ProviderError(
-      err instanceof Error ? err.message : 'Network request failed',
-    )
+    const name = err instanceof Error ? err.name : 'Error'
+    const message = err instanceof Error ? err.message : String(err)
+    // Include the request URL and error name: a bare browser message like
+    // "Load failed" or a URL-parser error is meaningless without them.
+    throw new ProviderError(`${name}: ${message} (fetching ${input})`)
   }
   if (!res.ok) {
     let detail = ''
@@ -28,7 +30,10 @@ export async function apiFetch<T = unknown>(
     } catch {
       /* body unreadable */
     }
-    throw new ProviderError(detail.slice(0, 300) || `Request failed (${res.status})`, res.status)
+    throw new ProviderError(
+      (detail.slice(0, 300) || `Request failed (${res.status})`) + ` [${input}]`,
+      res.status,
+    )
   }
   return (parse === 'json' ? res.json() : res.blob()) as Promise<T>
 }

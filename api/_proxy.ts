@@ -26,31 +26,41 @@ export function readRawBody(req: VercelRequest): Promise<Buffer> {
   })
 }
 
-function requestUrl(req: VercelRequest): URL {
-  return new URL(req.url ?? '/', 'http://localhost')
+function safeDecode(s: string): string {
+  try {
+    return decodeURIComponent(s)
+  } catch {
+    return s
+  }
 }
 
 /**
- * Extracts the sub-path after `/api/<routePrefix>/` directly from `req.url`.
+ * Extracts the sub-path after `/api/<routePrefix>/` directly from `req.url`,
+ * using plain string operations — deliberately NOT the `URL` constructor.
  *
- * NOT read from `req.query.path`: that relies on Vercel populating dynamic
- * catch-all segments into `req.query` the way Next.js does, which is not
- * guaranteed for plain (non-Next.js) Vercel Functions — in production this
- * came back empty for every request, so every call silently 403'd or fell
- * through to the wrong branch. Parsing `req.url` ourselves has no such
- * dependency and behaves identically locally and in production.
+ * History: first read `req.query.path` (Next.js-style catch-all params),
+ * which Vercel's plain Node Functions never populated — always empty in
+ * production. Switched to `new URL(req.url, 'http://localhost')`, which
+ * then threw "The string did not match the expected pattern." in
+ * production for real provider calls (not reproducible locally), most
+ * likely a WHATWG URL parser edge case specific to the runtime. Splitting
+ * `req.url` by hand sidesteps both: it has no dependency on how Vercel
+ * populates params and no dependency on any URL-parsing engine at all.
  */
 export function pathFromCatchAll(req: VercelRequest, routePrefix: string): string {
-  const { pathname } = requestUrl(req)
+  const raw = req.url ?? '/'
+  const pathname = raw.split('?', 1)[0] ?? raw
   const marker = `/api/${routePrefix}/`
   const idx = pathname.indexOf(marker)
   if (idx === -1) return ''
-  return decodeURIComponent(pathname.slice(idx + marker.length)).replace(/\/+$/, '')
+  return safeDecode(pathname.slice(idx + marker.length).replace(/\/+$/, ''))
 }
 
-/** The real query string (if any), taken straight from the request URL. */
+/** The real query string (if any), taken straight from `req.url` — no URL(). */
 export function queryString(req: VercelRequest): string {
-  return requestUrl(req).search
+  const raw = req.url ?? ''
+  const qIdx = raw.indexOf('?')
+  return qIdx === -1 ? '' : raw.slice(qIdx)
 }
 
 export interface ForwardOptions {
@@ -96,4 +106,25 @@ export function envKey(...names: string[]): string | undefined {
     if (v && v.trim()) return v.trim()
   }
   return undefined
+}
+
+/**
+ * Wraps a handler so ANY unexpected throw (bad input, upstream network
+ * failure, a bug) becomes a clean, readable JSON error instead of Vercel's
+ * generic crash page or an unhandled rejection — so the client always has
+ * something diagnosable to show instead of an opaque platform error.
+ */
+export function withErrorHandling(
+  handler: (req: VercelRequest, res: VercelResponse) => Promise<void> | void,
+) {
+  return async (req: VercelRequest, res: VercelResponse): Promise<void> => {
+    try {
+      await handler(req, res)
+    } catch (err) {
+      if (res.headersSent) return
+      const message = err instanceof Error ? err.message : String(err)
+      const name = err instanceof Error ? err.name : undefined
+      res.status(500).json({ error: message, errorType: name })
+    }
+  }
 }

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromCatchAll } from '../_proxy.js'
+import { envKey, forward, pathFromCatchAll, withErrorHandling } from '../_proxy.js'
 
 const ALLOW = [
   /^v1\/organization$/,
@@ -8,7 +8,7 @@ const ALLOW = [
   /^v1\/tasks\/[\w-]+$/,
 ]
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+export default withErrorHandling(async (req: VercelRequest, res: VercelResponse): Promise<void> => {
   const key = envKey('RUNWAY_API_KEY', 'VITE_RUNWAY_API_KEY')
   const path = pathFromCatchAll(req, 'runway')
 
@@ -30,4 +30,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       'x-runway-version': '2024-11-06',
     },
   })
-}
+})

@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromCatchAll } from '../_proxy.js'
+import { envKey, forward, pathFromCatchAll, withErrorHandling } from '../_proxy.js'
 
 const ALLOW = [
   /^v1\/user$/,
@@ -7,7 +7,7 @@ const ALLOW = [
   /^v1\/text-to-speech\/[\w-]+$/,
 ]
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+export default withErrorHandling(async (req: VercelRequest, res: VercelResponse): Promise<void> => {
   const key = envKey('ELEVENLABS_API_KEY', 'VITE_ELEVENLABS_API_KEY')
   const path = pathFromCatchAll(req, 'elevenlabs')
 
@@ -26,4 +26,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     allow: ALLOW,
     headers: { 'xi-api-key': key },
   })
-}
+})

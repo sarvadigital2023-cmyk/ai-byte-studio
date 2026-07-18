@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromCatchAll } from '../_proxy.js'
+import { envKey, forward, pathFromCatchAll, withErrorHandling } from '../_proxy.js'
 
 /**
  * HeyGen proxy. Media uploads go to upload.heygen.com, everything else to
@@ -18,7 +18,7 @@ const ALLOW = [
 
 const UPLOAD_PATHS = [/^v1\/talking_photo$/, /^v1\/asset$/]
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
+export default withErrorHandling(async (req: VercelRequest, res: VercelResponse): Promise<void> => {
   const key = envKey('HEYGEN_API_KEY', 'VITE_HEYGEN_API_KEY')
   const path = pathFromCatchAll(req, 'heygen')
 
@@ -38,4 +38,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     allow: ALLOW,
     headers: { 'x-api-key': key },
   })
-}
+})

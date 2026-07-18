@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { withErrorHandling } from './_proxy.js'
 
 /**
  * Fetches provider-hosted media (generated portraits, rendered videos) that
@@ -13,10 +14,27 @@ const ALLOWED_HOST_SUFFIXES = [
   '.cloudfront.net', // Runway task outputs
 ]
 
-export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  // Parsed from req.url directly rather than req.query — see the comment on
-  // pathFromCatchAll in _proxy.ts for why req.query isn't relied upon here.
-  const target = new URL(req.url ?? '/', 'http://localhost').searchParams.get('url')
+/** Extracts `?url=` from req.url by hand — see the comment on
+ * pathFromCatchAll in _proxy.ts for why the URL() constructor is avoided. */
+function getUrlParam(req: VercelRequest): string | null {
+  const raw = req.url ?? ''
+  const qIdx = raw.indexOf('?')
+  if (qIdx === -1) return null
+  for (const pair of raw.slice(qIdx + 1).split('&')) {
+    const [k, v] = pair.split('=')
+    if (k === 'url' && v !== undefined) {
+      try {
+        return decodeURIComponent(v)
+      } catch {
+        return v
+      }
+    }
+  }
+  return null
+}
+
+export default withErrorHandling(async (req: VercelRequest, res: VercelResponse): Promise<void> => {
+  const target = getUrlParam(req)
   if (!target) {
     res.status(400).json({ error: 'Missing url parameter' })
     return
@@ -42,4 +60,4 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (type) res.setHeader('content-type', type)
   res.setHeader('cache-control', 'private, max-age=300')
   res.send(Buffer.from(await upstream.arrayBuffer()))
-}
+})
