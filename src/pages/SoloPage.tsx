@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from 'react'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useSoloStore } from '@/store/solo'
 import { useSettingsStore } from '@/store/settings'
 import { startSoloAvatarPipeline, startVideoPipeline } from '@/services/pipeline'
@@ -144,6 +144,29 @@ export function SoloPage() {
           onChange={(e) => void pickPhoto(e.target.files?.[0])}
         />
       </StepCard>
+
+      {/* HeyGen scene limitation notice — shown only while HeyGen is the
+          selected video provider; disappears instantly when switching to
+          Runway. Remove this block once HeyGen supports scene generation. */}
+      <AnimatePresence>
+        {videoProvider === 'heygen' && (
+          <motion.div
+            key="heygen-scene-notice"
+            initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+            animate={{ opacity: 1, height: 'auto', marginBottom: 16 }}
+            exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            className="overflow-hidden"
+          >
+            <div className="glass glass-glow-yellow flex items-start gap-2.5 p-3.5">
+              <span className="text-base leading-none">⚠️</span>
+              <p className="text-xs leading-relaxed text-neon-yellow/90">
+                {t.solo.heygenSceneNotice}
+              </p>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Step 2 — Scene */}
       <StepCard

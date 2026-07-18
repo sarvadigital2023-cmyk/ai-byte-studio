@@ -41,6 +41,8 @@ export const en = {
     scenePlaceholder:
       'e.g. A cozy podcast studio with warm lamps, city lights in the window behind me…',
     sceneChips: ['Office', 'City street', 'Neon studio', 'Podcast setup'],
+    heygenSceneNotice:
+      "HeyGen currently works only with your uploaded photo's original background. Scene generation is available only when Runway is selected.",
     generateAvatar: '✨ Generate avatar',
     avatarReady: 'Avatar ready ✓',
     regenerate: '↻ Regenerate',
