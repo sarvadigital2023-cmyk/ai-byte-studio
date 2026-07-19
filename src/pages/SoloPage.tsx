@@ -28,7 +28,13 @@ export function SoloPage() {
   const hasScene = solo.scene.trim().length > 0
   const hasAvatar = solo.character.avatarStatus === 'done'
   const hasVoice = solo.character.voiceStatus !== 'none'
-  const hasSpeech = solo.speechText.trim().length > 0 || hasVoice
+  // A recorded voice only counts as usable speech while its audio blob is
+  // still in memory; after a reload the blob url is gone (only a cloned
+  // voiceId survives), so it no longer satisfies the speech step on its own —
+  // typed text is then required, and it's spoken in the cloned voice. This
+  // avoids marking the step complete and then failing mid-generation.
+  const hasRecordedAudio = !!solo.character.voiceSample?.url
+  const hasSpeech = solo.speechText.trim().length > 0 || hasRecordedAudio
   // Runway produces a silent, prompt-driven video — speech/voice is ignored,
   // so it isn't required to create the video on that provider.
   const speechRequired = !isRunway

@@ -118,7 +118,8 @@ function rateLimited(ip: string): boolean {
   const recent = (hits.get(ip) ?? []).filter((t) => now - t < RATE_WINDOW_MS)
   recent.push(now)
   hits.set(ip, recent)
-  if (hits.size > 5000) hits.clear() // crude memory bound
+  // Bound the map so a burst of unique IPs can't grow it without limit.
+  if (hits.size > 5000) hits.clear()
   return recent.length > RATE_MAX
 }
 
@@ -214,8 +215,8 @@ export async function forward(
 
 /**
  * Wraps a handler so any unexpected throw becomes a clean JSON error instead
- * of Vercel's crash page. The full error is logged server-side; the client
- * only receives a generic message so internal details aren't leaked.
+ * of Vercel's crash page. The client only receives a generic message so
+ * internal details aren't leaked (Vercel still records the failed invocation).
  */
 export function withErrorHandling(
   handler: (req: VercelRequest, res: VercelResponse) => Promise<void> | void,
@@ -223,8 +224,7 @@ export function withErrorHandling(
   return async (req: VercelRequest, res: VercelResponse): Promise<void> => {
     try {
       await handler(req, res)
-    } catch (err) {
-      console.error('[api] unhandled error:', err)
+    } catch {
       if (res.headersSent) return
       res.status(500).json({ error: 'Internal server error' })
     }
