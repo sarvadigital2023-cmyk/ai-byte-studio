@@ -81,7 +81,7 @@ error toast — there are no fallbacks.
 Locally: `cp .env.example .env`, then use `vercel dev` (not plain `vite dev`)
 so the `/api` proxies run alongside the app.
 
-## Securing the proxies (important for a public deployment)
+## Securing the proxies (required for a public deployment)
 
 The `/api/*` provider proxies spend the owner's **paid** HeyGen / Runway /
 ElevenLabs credits, so they must not be an open relay. Every request that
@@ -89,15 +89,18 @@ reaches a provider is guarded (`api/_proxy.ts → guardRequest`) by:
 
 - **Same-origin check** — browser requests from other sites are rejected.
 - **In-memory rate limiting** — ~40 req/min per IP per warm instance.
-- **Auth (when Supabase is configured)** — the caller must send a valid
-  Supabase session token, verified server-side against `…/auth/v1/user`
-  using only the public anon key (no service-role key). The browser attaches
-  this automatically once signed in; generation shows a "sign in" prompt
-  otherwise.
+- **Required auth** — the caller must send a valid Supabase session token,
+  verified server-side against `…/auth/v1/user` using only the public anon
+  key (no service-role key). The browser attaches this automatically once
+  signed in; generation shows a "sign in" prompt otherwise.
 
-**Enable Supabase to fully lock down a public deployment.** Without it the
-server has no way to verify callers, so only the same-origin + rate-limit
-layers apply. The `api/health` ping stays public (it returns only booleans).
+**Supabase must be configured for generation to work at all.** `verifyAuth`
+fails closed: if `SUPABASE_URL`/`SUPABASE_ANON_KEY` (or their `VITE_`
+equivalents) aren't set on the server, every provider call is rejected with
+503 rather than allowed through anonymously — there is no "open" mode. Set
+those two env vars (see the table above) and redeploy to enable generation.
+The `api/health` ping stays public (it returns only booleans, no provider
+call is made).
 
 ## Deploy to Vercel
 

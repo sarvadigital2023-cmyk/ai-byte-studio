@@ -5,8 +5,9 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
  * the browser calls /api/<provider>?path=..., the proxy injects the key and
  * forwards the request. Two layers keep the proxies from being abused as a
  * free relay for the owner's paid API credits:
- *   1. `guardRequest` — same-origin check, in-memory rate limit, and (when
- *      Supabase is configured on the server) a required, verified auth token.
+ *   1. `guardRequest` — same-origin check, in-memory rate limit, and a
+ *      required, verified Supabase auth token (fails closed if Supabase
+ *      itself isn't configured — no anonymous caller is ever let through).
  *   2. per-endpoint allowlists in each handler.
  */
 
@@ -124,19 +125,25 @@ function rateLimited(ip: string): boolean {
 }
 
 /**
- * Verifies the caller's Supabase auth token when Supabase is configured on
- * the server. Uses only the public anon key + the user's own JWT — no
- * service-role key. When Supabase is NOT configured we cannot verify anyone,
- * so the request is allowed (rate limit + same-origin still apply); this is
- * documented in README/DEPLOYMENT as the reason to enable Supabase auth for
- * a truly locked-down public deployment.
+ * Verifies the caller's Supabase auth token. Uses only the public anon key +
+ * the user's own JWT — no service-role key. Fails closed: if Supabase isn't
+ * configured on the server, nobody can be verified, so the request is
+ * rejected rather than let through — these endpoints spend the owner's paid
+ * credits and must never be reachable by an anonymous caller. Deploying this
+ * app publicly therefore requires Supabase to be configured (see README).
  */
 async function verifyAuth(
   req: VercelRequest,
 ): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
   const supaUrl = envKey('SUPABASE_URL', 'VITE_SUPABASE_URL')
   const supaAnon = envKey('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')
-  if (!supaUrl || !supaAnon) return { ok: true }
+  if (!supaUrl || !supaAnon) {
+    return {
+      ok: false,
+      status: 503,
+      message: 'Generation is not available: server auth is not configured',
+    }
+  }
 
   const auth = header(req, 'authorization')
   if (!auth || !/^Bearer\s+/i.test(auth)) {

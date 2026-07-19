@@ -15,8 +15,9 @@
 4. **Environment variables** — Settings → Environment Variables (all three
    environments): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`,
    `VITE_HEYGEN_API_KEY`, `VITE_RUNWAY_API_KEY`, `VITE_ELEVENLABS_API_KEY`.
-   Supabase is what lets the proxies verify callers — set it to lock the
-   `/api/*` provider routes down (see "Securing the proxies" in the README).
+   The two Supabase variables are **required**, not optional: the `/api/*`
+   proxies fail closed (503) without them, so generation does not work at all
+   until Supabase is configured (see "Securing the proxies" in the README).
 5. **Redeploy** — Deployments → ⋯ on the latest deploy → Redeploy (uncheck
    *Use existing Build Cache*).
 
@@ -32,8 +33,8 @@ The proxies are **flat** functions, and the provider sub-path travels as a
 ## Verifying the deployment
 
 Open these on the production domain — each returns JSON, not a 404 page. The
-`health` pings are public; the others require a signed-in caller when Supabase
-is configured.
+`health` pings are public; every other call always requires a signed-in
+caller (fails with 503 if Supabase itself isn't configured on the server).
 
 | URL | Expected |
 | --- | --- |

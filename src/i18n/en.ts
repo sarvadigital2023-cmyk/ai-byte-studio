@@ -205,7 +205,7 @@ export const en = {
     account: 'Account',
     localMode: 'Local mode',
     localModeHint:
-      'Supabase is not configured (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Everything is stored on this device. Add the env vars to unlock cloud sync and history across devices.',
+      'Supabase is not configured (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Video generation requires a signed-in account, so it is disabled until you add these env vars and redeploy.',
     cloudOn: 'Cloud sync is on — history follows you.',
     signOut: 'Sign out',
     signedOut: 'Signed out',

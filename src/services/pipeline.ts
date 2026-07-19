@@ -36,14 +36,12 @@ function overlayTitle(type: StudioType): string {
 }
 
 /**
- * When Supabase is configured the proxies require a signed-in caller, so a
- * generation that would fail with 401 mid-run is caught here first with a
- * clear message. When Supabase is off, the proxies can't enforce auth and
- * this is a no-op.
+ * The proxies always require a signed-in caller (they fail closed server-side
+ * if Supabase isn't configured at all), so a generation that would otherwise
+ * fail with 401/503 mid-run is caught here first with a clear message.
  */
 async function ensureSignedIn(): Promise<boolean> {
-  if (!isCloudEnabled) return true
-  if (await getAccessToken()) return true
+  if (isCloudEnabled && (await getAccessToken())) return true
   const t = getT()
   toast(t.toasts.signInRequired, 'error', { hint: t.toasts.signInRequiredHint, durationMs: 6000 })
   return false
