@@ -11,7 +11,13 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { ACCENT, type Accent } from '@/utils/accent'
 import { countWords, estimateSpeechDuration, formatDuration } from '@/utils/format'
-import { CARTOON_STYLES, MAX_CHARACTERS, MIN_CHARACTERS, cartoonStyleLabel } from '@/types'
+import {
+  CARTOON_STYLES,
+  MAX_CHARACTERS,
+  MIN_CHARACTERS,
+  MIN_READY_AVATARS,
+  cartoonStyleLabel,
+} from '@/types'
 import { useT, fmt } from '@/i18n'
 import { toast } from '@/store/toasts'
 
@@ -34,7 +40,8 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
 
   const count = store.characters.length
   const enough = count >= MIN_CHARACTERS
-  const allGenerated = enough && store.characters.every((c) => c.avatarStatus === 'done')
+  const readyCharacters = store.characters.filter((c) => c.avatarStatus === 'done')
+  const readyToCreate = readyCharacters.length >= MIN_READY_AVATARS
   const scriptFilled = store.script.trim().length > 0
   const words = countWords(store.script)
   const estimate = estimateSpeechDuration(store.script)
@@ -51,15 +58,16 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
       : t.cast.reasonAddAppearance
     : undefined
 
+  // A character without a finished avatar is skipped from the final video
+  // rather than blocking it, so Create only needs a minimum ready count —
+  // not every character, and not the photo/appearance inputs of the rest.
   const createDisabledReason = !enough
     ? fmt(t.cast.reasonAddMore, { n: MIN_CHARACTERS - count, min: MIN_CHARACTERS })
-    : missingInputsReason
-      ? missingInputsReason
-      : !allGenerated
-        ? t.cast.reasonGenerateFirst
-        : !scriptFilled
-          ? t.cast.reasonWriteScript
-          : undefined
+    : !readyToCreate
+      ? fmt(t.cast.reasonGenerateFirst, { n: MIN_READY_AVATARS })
+      : !scriptFilled
+        ? t.cast.reasonWriteScript
+        : undefined
 
   const generateDisabledReason = !enough
     ? fmt(t.cast.reasonNeedRange, { min: MIN_CHARACTERS, max: MAX_CHARACTERS, n: count })
@@ -102,7 +110,9 @@ export function CastStudio({ kind, accent, useStore }: CastStudioProps) {
       type: kind,
       provider: videoProvider,
       title: kind === 'cinema' ? t.gen.myMovie : t.gen.myCartoon,
-      characters: store.characters,
+      // Characters without a finished avatar are left out of the video
+      // instead of blocking it or being force-generated mid-render.
+      characters: readyCharacters,
       script: store.script,
       style: kind === 'cartoon' ? cartoonStyleLabel(store.style) : undefined,
     })

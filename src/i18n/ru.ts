@@ -76,7 +76,7 @@ export const ru: Dict = {
     reasonAddMore: 'Добавьте ещё минимум {n} (минимум {min})',
     reasonNeedRange: 'Нужно {min}–{max} персонажей (сейчас {n})',
     reasonInProgress: 'Идёт генерация…',
-    reasonGenerateFirst: 'Сначала сгенерируйте все аватары',
+    reasonGenerateFirst: 'Сначала сгенерируйте минимум {n} аватара(-ов)',
     reasonWriteScript: 'Сначала напишите сценарий',
     reasonAddPhotos: 'Сначала добавьте фото каждому персонажу',
     reasonAddAppearance: 'Сначала опишите каждого персонажа',

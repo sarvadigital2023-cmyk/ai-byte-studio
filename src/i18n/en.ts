@@ -81,7 +81,7 @@ export const en = {
     reasonAddMore: 'Add at least {n} more (minimum {min})',
     reasonNeedRange: 'Need {min}–{max} characters (now {n})',
     reasonInProgress: 'Generation in progress…',
-    reasonGenerateFirst: 'Generate all avatars first',
+    reasonGenerateFirst: 'Generate at least {n} avatars first',
     reasonWriteScript: 'Write the script first',
     reasonAddPhotos: 'Add a photo to every character first',
     reasonAddAppearance: 'Describe every character first',

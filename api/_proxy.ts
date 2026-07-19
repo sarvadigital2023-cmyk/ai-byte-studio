@@ -110,7 +110,7 @@ function sameOriginOk(req: VercelRequest): boolean {
 // Per-instance sliding-window rate limit. Best-effort: state is per warm
 // serverless instance and resets on cold start, but it caps bulk abuse cheaply
 // with no external dependency.
-const RATE_MAX = 40
+const RATE_MAX = 200
 const RATE_WINDOW_MS = 60_000
 const hits = new Map<string, number[]>()
 

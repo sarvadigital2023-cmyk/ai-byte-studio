@@ -132,6 +132,9 @@ export const TAB_ACCENT: Record<StudioType, 'blue' | 'pink' | 'green'> = {
 
 export const MIN_CHARACTERS = 5
 export const MAX_CHARACTERS = 6
+/** Cinema/Cartoon can render with a partial cast — characters without a
+ * finished avatar are skipped, not blocked, as long as this many are ready. */
+export const MIN_READY_AVATARS = 2
 
 export function uid(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto
