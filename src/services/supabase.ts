@@ -35,6 +35,18 @@ export async function signInWithMagicLink(email: string): Promise<{ error?: stri
   return error ? { error: error.message } : {}
 }
 
+/** Redirects to Google; only returns (with an error) if the redirect itself
+ * couldn't start — e.g. the Google provider isn't enabled in the Supabase
+ * project yet. On success the browser navigates away before this resolves. */
+export async function signInWithGoogle(): Promise<{ error?: string }> {
+  if (!supabase) return { error: 'Supabase is not configured' }
+  const { error } = await supabase.auth.signInWithOAuth({
+    provider: 'google',
+    options: { redirectTo: window.location.origin },
+  })
+  return error ? { error: error.message } : {}
+}
+
 export async function signOut(): Promise<void> {
   await supabase?.auth.signOut()
 }

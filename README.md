@@ -88,11 +88,15 @@ ElevenLabs credits, so they must not be an open relay. Every request that
 reaches a provider is guarded (`api/_proxy.ts → guardRequest`) by:
 
 - **Same-origin check** — browser requests from other sites are rejected.
-- **In-memory rate limiting** — ~40 req/min per IP per warm instance.
+- **In-memory rate limiting** — ~200 req/min per IP per warm instance.
 - **Required auth** — the caller must send a valid Supabase session token,
   verified server-side against `…/auth/v1/user` using only the public anon
   key (no service-role key). The browser attaches this automatically once
-  signed in; generation shows a "sign in" prompt otherwise.
+  signed in; generation shows a "sign in" prompt otherwise. Users can sign in
+  with Google or an email magic link (Settings → Account). Google sign-in
+  additionally requires enabling the Google provider in the Supabase
+  dashboard (Authentication → Providers) with an OAuth client ID/secret —
+  magic-link email sign-in needs no extra setup.
 
 **Supabase must be configured for generation to work at all.** `verifyAuth`
 fails closed: if `SUPABASE_URL`/`SUPABASE_ANON_KEY` (or their `VITE_`
