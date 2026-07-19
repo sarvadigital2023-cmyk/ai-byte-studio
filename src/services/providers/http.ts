@@ -1,4 +1,5 @@
 import { CancelledError, ProviderError } from './errors'
+import { getAccessToken } from '@/services/supabase'
 
 /**
  * Builds the proxy call for one provider endpoint: `/api/heygen?path=v1/user`
@@ -25,13 +26,19 @@ function absoluteUrl(path: string): string {
   return path.startsWith('/') ? origin + path : `${origin}/${path}`
 }
 
-/** Fetch through the same-origin serverless proxies with error extraction. */
+/** Fetch through the same-origin serverless proxies with error extraction.
+ * Attaches the Supabase access token (when signed in) so the proxy can
+ * authorize the caller; the proxies gate all paid provider calls on it. */
 export async function apiFetch<T = unknown>(
   input: string,
   init: RequestInit = {},
   parse: 'json' | 'blob' = 'json',
 ): Promise<T> {
   const url = absoluteUrl(input)
+  const token = await getAccessToken()
+  if (token) {
+    init = { ...init, headers: { ...init.headers, Authorization: `Bearer ${token}` } }
+  }
   let res: Response
   try {
     res = await fetch(url, init)

@@ -9,6 +9,7 @@ import { apiFetch, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
 import { compositeSceneWithPhoto } from './runwaySceneComposite'
 import { toast } from '@/store/toasts'
+import { getT, fmt } from '@/i18n'
 
 /**
  * Runway client (via the /api/runway proxy).
@@ -27,11 +28,12 @@ export const runwayInfo: ProviderInfo = {
   id: 'runway',
   name: 'Runway',
   async testConnection() {
+    const t = getT()
     try {
       await apiFetch(proxyPath(BASE, 'v1/organization'))
-      return { ok: true, message: 'Runway API reachable' }
+      return { ok: true, message: fmt(t.conn.reachable, { p: 'Runway' }) }
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : 'Connection failed' }
+      return { ok: false, message: err instanceof Error ? err.message : t.conn.failed }
     }
   },
 }
@@ -79,8 +81,9 @@ export const runwayVideo: VideoProviderApi = {
           )
           return { avatarId: imageUrl, previewUrl: imageUrl }
         } catch (err) {
-          toast(err instanceof Error ? err.message : 'Could not generate the scene', 'warning', {
-            hint: 'Using your original photo instead.',
+          const t = getT()
+          toast(err instanceof Error ? err.message : t.providers.sceneFailed, 'warning', {
+            hint: t.providers.sceneFailedHint,
           })
         }
       }

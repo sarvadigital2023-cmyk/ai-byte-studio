@@ -31,8 +31,9 @@ Plus: `/result/:id` (player + Share Kit), `/history` (Supabase-backed), `/settin
 ## Project structure
 
 ```
-api/            # Vercel serverless proxies: heygen/, runway/, elevenlabs/,
-                # health (key status), media (allowlisted CDN fetch)
+api/            # Vercel serverless proxies (flat functions, ?path= sub-path):
+                # heygen.ts, runway.ts, elevenlabs.ts, health.ts (key status),
+                # media.ts (HeyGen-only image fetch), _proxy.ts (shared guard)
 src/
   pages/        # solo, cinema, cartoon, result, settings, history
   components/   # ui kit, layout, voice, characters, generation, result, pwa
@@ -79,6 +80,31 @@ error toast — there are no fallbacks.
 
 Locally: `cp .env.example .env`, then use `vercel dev` (not plain `vite dev`)
 so the `/api` proxies run alongside the app.
+
+## Securing the proxies (required for a public deployment)
+
+The `/api/*` provider proxies spend the owner's **paid** HeyGen / Runway /
+ElevenLabs credits, so they must not be an open relay. Every request that
+reaches a provider is guarded (`api/_proxy.ts → guardRequest`) by:
+
+- **Same-origin check** — browser requests from other sites are rejected.
+- **In-memory rate limiting** — ~200 req/min per IP per warm instance.
+- **Required auth** — the caller must send a valid Supabase session token,
+  verified server-side against `…/auth/v1/user` using only the public anon
+  key (no service-role key). The browser attaches this automatically once
+  signed in; generation shows a "sign in" prompt otherwise. Users can sign in
+  with Google or an email magic link (Settings → Account). Google sign-in
+  additionally requires enabling the Google provider in the Supabase
+  dashboard (Authentication → Providers) with an OAuth client ID/secret —
+  magic-link email sign-in needs no extra setup.
+
+**Supabase must be configured for generation to work at all.** `verifyAuth`
+fails closed: if `SUPABASE_URL`/`SUPABASE_ANON_KEY` (or their `VITE_`
+equivalents) aren't set on the server, every provider call is rejected with
+503 rather than allowed through anonymously — there is no "open" mode. Set
+those two env vars (see the table above) and redeploy to enable generation.
+The `api/health` ping stays public (it returns only booleans, no provider
+call is made).
 
 ## Deploy to Vercel
 

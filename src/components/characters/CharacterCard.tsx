@@ -46,7 +46,13 @@ export function CharacterCard({
     if (!file) return
     try {
       const dataUrl = await fileToDataUrl(file)
-      onUpdate({ photoUrl: dataUrl, avatarStatus: 'idle', avatarUrl: undefined, avatarId: undefined })
+      onUpdate({
+        photoUrl: dataUrl,
+        avatarStatus: 'idle',
+        avatarUrl: undefined,
+        avatarId: undefined,
+        avatarProvider: undefined,
+      })
     } catch {
       toast(t.solo.imageReadError, 'error')
     }

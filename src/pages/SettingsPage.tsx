@@ -1,8 +1,15 @@
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import type { User } from '@supabase/supabase-js'
 import type { ConnectionTestState, ProviderId, VideoProviderId } from '@/types'
 import { PROVIDERS, getKeyStatus, type KeyStatus } from '@/services/providers'
-import { supabase, isCloudEnabled, signInWithMagicLink, signOut } from '@/services/supabase'
+import {
+  supabase,
+  isCloudEnabled,
+  signInWithMagicLink,
+  signInWithGoogle,
+  signOut,
+} from '@/services/supabase'
 import { useSettingsStore } from '@/store/settings'
 import { toast } from '@/store/toasts'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
@@ -14,6 +21,25 @@ const PROVIDER_ICON: Record<ProviderId, { icon: string; envVar: string }> = {
   heygen: { icon: '🎭', envVar: 'VITE_HEYGEN_API_KEY' },
   runway: { icon: '🎞', envVar: 'VITE_RUNWAY_API_KEY' },
   elevenlabs: { icon: '🎙', envVar: 'VITE_ELEVENLABS_API_KEY' },
+}
+
+interface AccountInfo {
+  email: string
+  name: string | null
+  avatarUrl: string | null
+}
+
+/** Google OAuth populates full_name/avatar_url (or name/picture); magic-link
+ * email sign-in has neither, so the UI falls back to the email address. */
+function toAccountInfo(user: User | null): AccountInfo | null {
+  if (!user) return null
+  const meta = user.user_metadata ?? {}
+  return {
+    email: user.email ?? '',
+    name: (meta.full_name as string | undefined) ?? (meta.name as string | undefined) ?? null,
+    avatarUrl:
+      (meta.avatar_url as string | undefined) ?? (meta.picture as string | undefined) ?? null,
+  }
 }
 
 /** API keys status, provider connection tests, global video provider, language, account. */
@@ -29,8 +55,9 @@ export function SettingsPage() {
   const [testMessages, setTestMessages] = useState<Partial<Record<ProviderId, string>>>({})
   const [keys, setKeys] = useState<KeyStatus | null>(null)
   const [email, setEmail] = useState('')
-  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const [account, setAccount] = useState<AccountInfo | null>(null)
   const [authBusy, setAuthBusy] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
 
   useEffect(() => {
     void getKeyStatus(true).then(setKeys)
@@ -38,9 +65,9 @@ export function SettingsPage() {
 
   useEffect(() => {
     if (!supabase) return
-    void supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email ?? null))
+    void supabase.auth.getUser().then(({ data }) => setAccount(toAccountInfo(data.user)))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUserEmail(session?.user?.email ?? null)
+      setAccount(toAccountInfo(session?.user ?? null))
       if (session?.user) void hydrateFromProfile()
     })
     return () => sub.subscription.unsubscribe()
@@ -60,6 +87,13 @@ export function SettingsPage() {
     setAuthBusy(false)
     if (error) toast(error, 'error')
     else toast(t.settings.linkSent, 'success')
+  }
+
+  const continueWithGoogle = async () => {
+    setGoogleBusy(true)
+    const { error } = await signInWithGoogle()
+    setGoogleBusy(false)
+    if (error) toast(error, 'error')
   }
 
   return (
@@ -172,49 +206,78 @@ export function SettingsPage() {
         })}
       </section>
 
-      {/* Account */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
-        {!isCloudEnabled ? (
-          <GlassCard>
-            <p className="text-sm font-bold">{t.settings.localMode}</p>
-            <p className="mt-1 text-xs text-muted">{t.settings.localModeHint}</p>
-          </GlassCard>
-        ) : userEmail ? (
-          <GlassCard glow accent="green">
-            <p className="text-sm font-bold">{userEmail}</p>
-            <p className="mt-1 text-xs text-muted">{t.settings.cloudOn}</p>
-            <div className="mt-3">
+      {/* Account — this deployment's own concern, so the section simply
+          doesn't exist when there's no Supabase project behind it. */}
+      {isCloudEnabled && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
+          {account ? (
+            <GlassCard glow accent="green">
+              <div className="flex items-center gap-3">
+                {account.avatarUrl ? (
+                  <img
+                    src={account.avatarUrl}
+                    alt=""
+                    className="h-11 w-11 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-base font-bold">
+                    {(account.name || account.email || '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{account.name || account.email}</p>
+                  {account.name && (
+                    <p className="truncate text-xs text-muted">{account.email}</p>
+                  )}
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-muted">{t.settings.cloudOn}</p>
+              <div className="mt-3">
+                <NeonButton
+                  variant="ghost"
+                  onClick={() => {
+                    void signOut()
+                    toast(t.settings.signedOut, 'info')
+                  }}
+                >
+                  {t.settings.signOut}
+                </NeonButton>
+              </div>
+            </GlassCard>
+          ) : (
+            <GlassCard>
+              <p className="text-sm font-bold">{t.settings.signInTitle}</p>
+              <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
               <NeonButton
-                variant="ghost"
-                onClick={() => {
-                  void signOut()
-                  toast(t.settings.signedOut, 'info')
-                }}
+                accent="blue"
+                fullWidth
+                disabled={googleBusy}
+                onClick={() => void continueWithGoogle()}
               >
-                {t.settings.signOut}
+                {googleBusy ? t.settings.sending : t.settings.continueWithGoogle}
               </NeonButton>
-            </div>
-          </GlassCard>
-        ) : (
-          <GlassCard>
-            <p className="text-sm font-bold">{t.settings.signInTitle}</p>
-            <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
-            <div className="mt-3 flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.settings.emailPlaceholder}
-                className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
-              />
-              <NeonButton accent="blue" disabled={authBusy} onClick={() => void sendMagicLink()}>
-                {authBusy ? t.settings.sending : t.settings.sendLink}
-              </NeonButton>
-            </div>
-          </GlassCard>
-        )}
-      </section>
+              <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
+                <span className="h-px flex-1 bg-white/10" />
+                {t.settings.orEmail}
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.settings.emailPlaceholder}
+                  className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
+                />
+                <NeonButton accent="blue" disabled={authBusy} onClick={() => void sendMagicLink()}>
+                  {authBusy ? t.settings.sending : t.settings.sendLink}
+                </NeonButton>
+              </div>
+            </GlassCard>
+          )}
+        </section>
+      )}
 
       <p className="pt-2 text-center text-[11px] text-white/30">{t.settings.footer}</p>
     </div>

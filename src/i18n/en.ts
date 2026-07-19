@@ -81,8 +81,10 @@ export const en = {
     reasonAddMore: 'Add at least {n} more (minimum {min})',
     reasonNeedRange: 'Need {min}–{max} characters (now {n})',
     reasonInProgress: 'Generation in progress…',
-    reasonGenerateFirst: 'Generate all avatars first',
+    reasonGenerateFirst: 'Generate at least {n} avatars first',
     reasonWriteScript: 'Write the script first',
+    reasonAddPhotos: 'Add a photo to every character first',
+    reasonAddAppearance: 'Describe every character first',
     avatarFailed: 'Avatar generation failed',
   },
   character: {
@@ -152,6 +154,9 @@ export const en = {
     regenerate: '↻ Regenerate',
     reopened: 'Project reopened — press Create to regenerate',
     noVideoFile: 'This generation has no video file',
+    expiredTitle: 'This video link has expired',
+    expiredHint:
+      'Provider video links are temporary and expire after a while. Regenerate to create a fresh one.',
   },
   share: {
     title: 'Share Kit',
@@ -198,14 +203,13 @@ export const en = {
     testConnection: 'Test connection',
     testing: 'Testing…',
     account: 'Account',
-    localMode: 'Local mode',
-    localModeHint:
-      'Supabase is not configured (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Everything is stored on this device. Add the env vars to unlock cloud sync and history across devices.',
     cloudOn: 'Cloud sync is on — history follows you.',
     signOut: 'Sign out',
     signedOut: 'Signed out',
-    signInTitle: 'Sign in for cloud sync',
-    signInHint: 'The app works without an account — sign in to sync projects and history.',
+    signInTitle: 'Sign in to generate',
+    signInHint: 'Generation uses paid provider credits, so an account is required.',
+    continueWithGoogle: 'Continue with Google',
+    orEmail: 'or email',
     emailPlaceholder: 'you@email.com',
     sendLink: 'Send link',
     sending: 'Sending…',
@@ -224,5 +228,20 @@ export const en = {
     missingKey: '{p} key is not configured',
     missingKeyHint:
       'Add it in Vercel → Project Settings → Environment Variables, then redeploy.',
+    signInRequired: 'Sign in to generate',
+    signInRequiredHint:
+      'Generation uses paid provider credits, so it requires a signed-in account. Open Settings to sign in.',
+  },
+  conn: {
+    reachable: '{p} API reachable',
+    connectedQuota: 'Connected · quota {n}',
+    connectedPlan: 'Connected · {plan} plan',
+    failed: 'Connection failed',
+  },
+  providers: {
+    sceneFailed: 'Could not generate the scene',
+    sceneFailedHint: 'Using your original photo instead.',
+    runwaySilentNotice:
+      'Runway generates a silent, prompt-driven video — recorded voice and speech text are not lip-synced. Choose HeyGen for talking avatars.',
   },
 }

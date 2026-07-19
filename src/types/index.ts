@@ -36,6 +36,9 @@ export interface Character {
   avatarUrl?: string
   /** Provider-side avatar reference (e.g. HeyGen talking_photo_id). */
   avatarId?: string
+  /** Which video provider produced `avatarId` — a HeyGen id is meaningless to
+   * Runway and vice versa, so the pipeline regenerates on a mismatch. */
+  avatarProvider?: VideoProviderId
 }
 
 export type CartoonStyle = 'pixar3d' | 'anime' | 'flat2d' | 'claymation'
@@ -46,6 +49,11 @@ export const CARTOON_STYLES: { id: CartoonStyle; label: string }[] = [
   { id: 'flat2d', label: '2D Flat' },
   { id: 'claymation', label: 'Claymation' },
 ]
+
+/** Human-readable style name for provider prompts ("Pixar 3D", not "pixar3d"). */
+export function cartoonStyleLabel(id: CartoonStyle): string {
+  return CARTOON_STYLES.find((s) => s.id === id)?.label ?? id
+}
 
 export type GenerationStepStatus = 'pending' | 'active' | 'done' | 'error'
 
@@ -124,6 +132,9 @@ export const TAB_ACCENT: Record<StudioType, 'blue' | 'pink' | 'green'> = {
 
 export const MIN_CHARACTERS = 5
 export const MAX_CHARACTERS = 6
+/** Cinema/Cartoon can render with a partial cast — characters without a
+ * finished avatar are skipped, not blocked, as long as this many are ready. */
+export const MIN_READY_AVATARS = 2
 
 export function uid(): string {
   return typeof crypto !== 'undefined' && 'randomUUID' in crypto

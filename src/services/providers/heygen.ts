@@ -7,7 +7,7 @@ import type {
 } from './types'
 import { apiFetch, dataUrlToBlob, mediaProxyUrl, poll, proxyPath } from './http'
 import { ProviderError } from './errors'
-import { toast } from '@/store/toasts'
+import { getT, fmt } from '@/i18n'
 
 /**
  * HeyGen client (via the /api/heygen proxy).
@@ -21,6 +21,7 @@ export const heygenInfo: ProviderInfo = {
   id: 'heygen',
   name: 'HeyGen',
   async testConnection() {
+    const t = getT()
     try {
       const res = await apiFetch<{ data?: { remaining_quota?: number } }>(
         proxyPath(BASE, 'v2/user/remaining_quota'),
@@ -29,10 +30,12 @@ export const heygenInfo: ProviderInfo = {
       return {
         ok: true,
         message:
-          quota !== undefined ? `Connected · quota ${quota}` : 'HeyGen API reachable',
+          quota !== undefined
+            ? fmt(t.conn.connectedQuota, { n: quota })
+            : fmt(t.conn.reachable, { p: 'HeyGen' }),
       }
     } catch (err) {
-      return { ok: false, message: err instanceof Error ? err.message : 'Connection failed' }
+      return { ok: false, message: err instanceof Error ? err.message : t.conn.failed }
     }
   },
 }
@@ -103,18 +106,11 @@ export const heygenVideo: VideoProviderApi = {
   async createAvatar(req: AvatarRequest): Promise<AvatarResult> {
     if (req.character.photoUrl) {
       // HeyGen's talking_photo API animates the uploaded photo exactly as
-      // provided — it has no endpoint of its own to regenerate or replace a
-      // photo's background from a text description. Provider calls must stay
-      // within the provider the user selected, so this deliberately never
-      // calls Runway (or anything else) to work around that: if a scene was
-      // chosen, we say so plainly instead of silently ignoring it or
-      // reaching for another provider's API behind the user's back.
-      if (req.scene?.trim()) {
-        toast('HeyGen uses your photo as uploaded', 'info', {
-          hint: 'HeyGen animates the original photo and background as-is — it cannot generate a new scene. Choose Runway as the video provider for scene generation.',
-          durationMs: 6000,
-        })
-      }
+      // provided — it has no endpoint of its own to change a photo's
+      // background from a text description, and provider calls must stay
+      // within the selected provider (it must never call Runway behind the
+      // user's back). The Solo screen already shows a proactive banner about
+      // this while HeyGen is selected, so no scene handling is needed here.
       const image = await dataUrlToBlob(req.character.photoUrl)
       const result = await createTalkingPhoto(image, req.signal)
       return { ...result, previewUrl: result.previewUrl ?? req.character.photoUrl }

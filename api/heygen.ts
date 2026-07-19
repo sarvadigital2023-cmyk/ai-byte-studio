@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { envKey, forward, pathFromQuery, withErrorHandling } from './_proxy.js'
+import { envKey, forward, guardRequest, pathFromQuery, withErrorHandling } from './_proxy.js'
 
 /**
  * HeyGen proxy. Media uploads go to upload.heygen.com, everything else to
@@ -25,11 +25,13 @@ export default withErrorHandling(async (req: VercelRequest, res: VercelResponse)
   const key = envKey('HEYGEN_API_KEY', 'VITE_HEYGEN_API_KEY')
   const path = pathFromQuery(req)
 
-  // Diagnostic ping: confirms the proxy route itself is deployed.
+  // Diagnostic ping: confirms the proxy route itself is deployed (public).
   if (path === 'health') {
     res.status(200).json({ ok: true, provider: 'heygen', keyConfigured: !!key })
     return
   }
+  // Everything below hits the paid API — require a guarded, authorized caller.
+  if (!(await guardRequest(req, res))) return
   if (!key) {
     res.status(503).json({ error: 'HeyGen key is not configured on the server' })
     return

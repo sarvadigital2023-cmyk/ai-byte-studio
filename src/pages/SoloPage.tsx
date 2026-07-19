@@ -23,12 +23,24 @@ export function SoloPage() {
   const [dragOver, setDragOver] = useState(false)
   const [confirmReset, setConfirmReset] = useState(false)
 
+  const isRunway = videoProvider === 'runway'
   const hasPhoto = !!solo.character.photoUrl
   const hasScene = solo.scene.trim().length > 0
   const hasAvatar = solo.character.avatarStatus === 'done'
-  const hasSpeech = solo.speechText.trim().length > 0 || solo.character.voiceStatus !== 'none'
-  const allDone = hasPhoto && hasScene && hasAvatar && hasSpeech
-  const hasAnything = hasPhoto || hasScene || hasAvatar || solo.speechText.trim().length > 0
+  const hasVoice = solo.character.voiceStatus !== 'none'
+  // A recorded voice only counts as usable speech while its audio blob is
+  // still in memory; after a reload the blob url is gone (only a cloned
+  // voiceId survives), so it no longer satisfies the speech step on its own —
+  // typed text is then required, and it's spoken in the cloned voice. This
+  // avoids marking the step complete and then failing mid-generation.
+  const hasRecordedAudio = !!solo.character.voiceSample?.url
+  const hasSpeech = solo.speechText.trim().length > 0 || hasRecordedAudio
+  // Runway produces a silent, prompt-driven video — speech/voice is ignored,
+  // so it isn't required to create the video on that provider.
+  const speechRequired = !isRunway
+  const allDone = hasPhoto && hasScene && hasAvatar && (!speechRequired || hasSpeech)
+  const hasAnything =
+    hasPhoto || hasScene || hasAvatar || hasVoice || solo.speechText.trim().length > 0
 
   const resetAll = () => {
     solo.reset()
@@ -44,7 +56,7 @@ export function SoloPage() {
     !hasPhoto && t.solo.missingPhoto,
     !hasScene && t.solo.missingScene,
     !hasAvatar && t.solo.missingAvatar,
-    !hasSpeech && t.solo.missingSpeech,
+    speechRequired && !hasSpeech && t.solo.missingSpeech,
   ].filter(Boolean) as string[]
 
   const pickPhoto = async (file: File | undefined | null) => {
@@ -61,8 +73,8 @@ export function SoloPage() {
       provider: videoProvider,
       character: solo.character,
       scene: solo.scene,
-      onAvatarReady: (avatarId, previewUrl) =>
-        solo.setAvatar('done', previewUrl ?? solo.character.photoUrl, avatarId),
+      onAvatarReady: (avatarId, previewUrl, provider) =>
+        solo.setAvatar('done', previewUrl ?? solo.character.photoUrl, avatarId, provider),
     })
   }
 
@@ -243,10 +255,28 @@ export function SoloPage() {
       <StepCard
         index={4}
         title={t.solo.stepSpeech}
-        done={hasSpeech}
+        done={speechRequired ? hasSpeech : true}
         unlocked={hasAvatar}
         lockedHint={t.solo.completePrevious}
       >
+        <AnimatePresence>
+          {isRunway && (
+            <motion.div
+              initial={{ opacity: 0, height: 0, marginBottom: 0 }}
+              animate={{ opacity: 1, height: 'auto', marginBottom: 12 }}
+              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              className="overflow-hidden"
+            >
+              <div className="glass glass-glow-yellow flex items-start gap-2.5 p-3.5">
+                <span className="text-base leading-none">⚠️</span>
+                <p className="text-xs leading-relaxed text-neon-yellow/90">
+                  {t.providers.runwaySilentNotice}
+                </p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         <textarea
           value={solo.speechText}
           onChange={(e) => solo.setSpeechText(e.target.value)}

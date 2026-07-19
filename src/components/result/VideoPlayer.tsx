@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { useT } from '@/i18n'
 
 interface VideoPlayerProps {
   src: string
@@ -6,10 +7,25 @@ interface VideoPlayerProps {
 
 /** Full-screen 9:16 vertical player with custom controls. */
 export function VideoPlayer({ src }: VideoPlayerProps) {
+  const t = useT()
   const videoRef = useRef<HTMLVideoElement>(null)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
   const [muted, setMuted] = useState(false)
+  const [failed, setFailed] = useState(false)
+
+  // Provider result URLs are temporary signed links that expire after hours/
+  // days. When the source no longer loads, say so clearly instead of showing
+  // a broken black box.
+  if (failed) {
+    return (
+      <div className="flex aspect-[9/16] w-full flex-col items-center justify-center gap-3 rounded-2xl border border-neon-yellow/30 bg-black/60 p-6 text-center">
+        <span className="text-4xl">⏳</span>
+        <p className="text-sm font-bold text-neon-yellow">{t.result.expiredTitle}</p>
+        <p className="max-w-[240px] text-xs text-muted">{t.result.expiredHint}</p>
+      </div>
+    )
+  }
 
   const toggle = () => {
     const v = videoRef.current
@@ -43,6 +59,7 @@ export function VideoPlayer({ src }: VideoPlayerProps) {
           setProgress(v.duration ? v.currentTime / v.duration : 0)
         }}
         onEnded={() => setPlaying(false)}
+        onError={() => setFailed(true)}
         onClick={toggle}
       />
       {!playing && (

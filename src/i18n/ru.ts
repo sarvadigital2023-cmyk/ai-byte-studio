@@ -76,8 +76,10 @@ export const ru: Dict = {
     reasonAddMore: 'Добавьте ещё минимум {n} (минимум {min})',
     reasonNeedRange: 'Нужно {min}–{max} персонажей (сейчас {n})',
     reasonInProgress: 'Идёт генерация…',
-    reasonGenerateFirst: 'Сначала сгенерируйте все аватары',
+    reasonGenerateFirst: 'Сначала сгенерируйте минимум {n} аватара(-ов)',
     reasonWriteScript: 'Сначала напишите сценарий',
+    reasonAddPhotos: 'Сначала добавьте фото каждому персонажу',
+    reasonAddAppearance: 'Сначала опишите каждого персонажа',
     avatarFailed: 'Не удалось сгенерировать аватар',
   },
   character: {
@@ -145,6 +147,9 @@ export const ru: Dict = {
     regenerate: '↻ Пересоздать',
     reopened: 'Проект снова открыт — нажмите «Создать», чтобы пересоздать',
     noVideoFile: 'У этой генерации нет видеофайла',
+    expiredTitle: 'Ссылка на видео истекла',
+    expiredHint:
+      'Ссылки провайдеров на видео временные и через некоторое время перестают работать. Пересоздайте, чтобы получить новую.',
   },
   share: {
     title: 'Share Kit',
@@ -191,14 +196,13 @@ export const ru: Dict = {
     testConnection: 'Проверить подключение',
     testing: 'Проверка…',
     account: 'Аккаунт',
-    localMode: 'Локальный режим',
-    localModeHint:
-      'Supabase не настроен (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Всё хранится на этом устройстве. Добавьте переменные, чтобы включить облачную синхронизацию и историю на всех устройствах.',
     cloudOn: 'Облачная синхронизация включена — история всегда с вами.',
     signOut: 'Выйти',
     signedOut: 'Вы вышли из аккаунта',
-    signInTitle: 'Войдите для облачной синхронизации',
-    signInHint: 'Приложение работает и без аккаунта — вход включает синхронизацию проектов и истории.',
+    signInTitle: 'Войдите, чтобы генерировать',
+    signInHint: 'Генерация расходует платные кредиты провайдеров, поэтому нужен аккаунт.',
+    continueWithGoogle: 'Войти через Google',
+    orEmail: 'или email',
     emailPlaceholder: 'you@email.com',
     sendLink: 'Отправить ссылку',
     sending: 'Отправка…',
@@ -217,5 +221,20 @@ export const ru: Dict = {
     missingKey: 'Ключ {p} не настроен',
     missingKeyHint:
       'Добавьте его в Vercel → Project Settings → Environment Variables и сделайте redeploy.',
+    signInRequired: 'Войдите, чтобы генерировать',
+    signInRequiredHint:
+      'Генерация расходует платные кредиты провайдеров, поэтому нужен вход в аккаунт. Откройте Настройки и войдите.',
+  },
+  conn: {
+    reachable: '{p} API доступен',
+    connectedQuota: 'Подключено · квота {n}',
+    connectedPlan: 'Подключено · план {plan}',
+    failed: 'Не удалось подключиться',
+  },
+  providers: {
+    sceneFailed: 'Не удалось сгенерировать сцену',
+    sceneFailedHint: 'Используется исходное фото.',
+    runwaySilentNotice:
+      'Runway создаёт немое видео по текстовому описанию — записанный голос и текст речи не синхронизируются с губами. Для говорящих аватаров выберите HeyGen.',
   },
 }
