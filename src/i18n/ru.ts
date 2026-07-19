@@ -196,9 +196,6 @@ export const ru: Dict = {
     testConnection: 'Проверить подключение',
     testing: 'Проверка…',
     account: 'Аккаунт',
-    localMode: 'Локальный режим',
-    localModeHint:
-      'Supabase не настроен (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Генерация видео требует входа в аккаунт, поэтому она отключена, пока вы не добавите эти переменные и не сделаете redeploy.',
     cloudOn: 'Облачная синхронизация включена — история всегда с вами.',
     signOut: 'Выйти',
     signedOut: 'Вы вышли из аккаунта',

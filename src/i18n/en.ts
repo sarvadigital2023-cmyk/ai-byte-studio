@@ -203,9 +203,6 @@ export const en = {
     testConnection: 'Test connection',
     testing: 'Testing…',
     account: 'Account',
-    localMode: 'Local mode',
-    localModeHint:
-      'Supabase is not configured (VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY). Video generation requires a signed-in account, so it is disabled until you add these env vars and redeploy.',
     cloudOn: 'Cloud sync is on — history follows you.',
     signOut: 'Sign out',
     signedOut: 'Signed out',

@@ -206,80 +206,78 @@ export function SettingsPage() {
         })}
       </section>
 
-      {/* Account */}
-      <section className="space-y-3">
-        <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
-        {!isCloudEnabled ? (
-          <GlassCard>
-            <p className="text-sm font-bold">{t.settings.localMode}</p>
-            <p className="mt-1 text-xs text-muted">{t.settings.localModeHint}</p>
-          </GlassCard>
-        ) : account ? (
-          <GlassCard glow accent="green">
-            <div className="flex items-center gap-3">
-              {account.avatarUrl ? (
-                <img
-                  src={account.avatarUrl}
-                  alt=""
-                  className="h-11 w-11 shrink-0 rounded-full object-cover"
-                />
-              ) : (
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-base font-bold">
-                  {(account.name || account.email || '?').charAt(0).toUpperCase()}
-                </div>
-              )}
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-bold">{account.name || account.email}</p>
-                {account.name && (
-                  <p className="truncate text-xs text-muted">{account.email}</p>
+      {/* Account — this deployment's own concern, so the section simply
+          doesn't exist when there's no Supabase project behind it. */}
+      {isCloudEnabled && (
+        <section className="space-y-3">
+          <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
+          {account ? (
+            <GlassCard glow accent="green">
+              <div className="flex items-center gap-3">
+                {account.avatarUrl ? (
+                  <img
+                    src={account.avatarUrl}
+                    alt=""
+                    className="h-11 w-11 shrink-0 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-base font-bold">
+                    {(account.name || account.email || '?').charAt(0).toUpperCase()}
+                  </div>
                 )}
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-bold">{account.name || account.email}</p>
+                  {account.name && (
+                    <p className="truncate text-xs text-muted">{account.email}</p>
+                  )}
+                </div>
               </div>
-            </div>
-            <p className="mt-2 text-xs text-muted">{t.settings.cloudOn}</p>
-            <div className="mt-3">
+              <p className="mt-2 text-xs text-muted">{t.settings.cloudOn}</p>
+              <div className="mt-3">
+                <NeonButton
+                  variant="ghost"
+                  onClick={() => {
+                    void signOut()
+                    toast(t.settings.signedOut, 'info')
+                  }}
+                >
+                  {t.settings.signOut}
+                </NeonButton>
+              </div>
+            </GlassCard>
+          ) : (
+            <GlassCard>
+              <p className="text-sm font-bold">{t.settings.signInTitle}</p>
+              <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
               <NeonButton
-                variant="ghost"
-                onClick={() => {
-                  void signOut()
-                  toast(t.settings.signedOut, 'info')
-                }}
+                accent="blue"
+                fullWidth
+                disabled={googleBusy}
+                onClick={() => void continueWithGoogle()}
               >
-                {t.settings.signOut}
+                {googleBusy ? t.settings.sending : t.settings.continueWithGoogle}
               </NeonButton>
-            </div>
-          </GlassCard>
-        ) : (
-          <GlassCard>
-            <p className="text-sm font-bold">{t.settings.signInTitle}</p>
-            <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
-            <NeonButton
-              accent="blue"
-              fullWidth
-              disabled={googleBusy}
-              onClick={() => void continueWithGoogle()}
-            >
-              {googleBusy ? t.settings.sending : t.settings.continueWithGoogle}
-            </NeonButton>
-            <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
-              <span className="h-px flex-1 bg-white/10" />
-              {t.settings.orEmail}
-              <span className="h-px flex-1 bg-white/10" />
-            </div>
-            <div className="flex gap-2">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder={t.settings.emailPlaceholder}
-                className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
-              />
-              <NeonButton accent="blue" disabled={authBusy} onClick={() => void sendMagicLink()}>
-                {authBusy ? t.settings.sending : t.settings.sendLink}
-              </NeonButton>
-            </div>
-          </GlassCard>
-        )}
-      </section>
+              <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
+                <span className="h-px flex-1 bg-white/10" />
+                {t.settings.orEmail}
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
+              <div className="flex gap-2">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder={t.settings.emailPlaceholder}
+                  className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
+                />
+                <NeonButton accent="blue" disabled={authBusy} onClick={() => void sendMagicLink()}>
+                  {authBusy ? t.settings.sending : t.settings.sendLink}
+                </NeonButton>
+              </div>
+            </GlassCard>
+          )}
+        </section>
+      )}
 
       <p className="pt-2 text-center text-[11px] text-white/30">{t.settings.footer}</p>
     </div>
