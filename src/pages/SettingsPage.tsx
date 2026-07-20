@@ -3,7 +3,13 @@ import { motion } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import type { ConnectionTestState, ProviderId, VideoProviderId } from '@/types'
 import { PROVIDERS, getKeyStatus, type KeyStatus } from '@/services/providers'
-import { getSupabase, sendEmailOtp, verifyEmailOtp, signOut } from '@/services/supabase'
+import {
+  getSupabase,
+  sendEmailOtp,
+  verifyEmailOtp,
+  updateUserName,
+  signOut,
+} from '@/services/supabase'
 import { useSettingsStore } from '@/store/settings'
 import { toast } from '@/store/toasts'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
@@ -56,6 +62,10 @@ export function SettingsPage() {
   const [otpSent, setOtpSent] = useState(false)
   const [sendBusy, setSendBusy] = useState(false)
   const [verifyBusy, setVerifyBusy] = useState(false)
+  // First-registration name form (shown once a signed-in user has no name yet).
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [saveNameBusy, setSaveNameBusy] = useState(false)
 
   useEffect(() => {
     void getKeyStatus(true).then(setKeys)
@@ -113,6 +123,27 @@ export function SettingsPage() {
     setOtpSent(false)
     setCode('')
   }
+
+  const saveName = async () => {
+    const fn = firstName.trim()
+    const ln = lastName.trim()
+    if (!fn || !ln) return
+    setSaveNameBusy(true)
+    const { error } = await updateUserName(fn, ln)
+    setSaveNameBusy(false)
+    if (error) {
+      toast(error, 'error')
+      return
+    }
+    // Reflect the new name immediately; onAuthStateChange also refreshes it.
+    const supabase = getSupabase()
+    const { data } = (await supabase?.auth.getUser()) ?? { data: { user: null } }
+    setAccount(toAccountInfo(data.user))
+    toast(t.settings.profileSaved, 'success')
+  }
+
+  // A signed-in user who hasn't given a name yet (first registration).
+  const needsName = account !== null && !account.name
 
   return (
     <div className="space-y-6 pb-6">
@@ -228,7 +259,42 @@ export function SettingsPage() {
           deployment. */}
       <section className="space-y-3">
         <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
-        {account ? (
+        {needsName ? (
+          <GlassCard glow accent="blue">
+            <p className="text-sm font-bold">{t.settings.completeProfile}</p>
+            <p className="mt-1 text-xs text-muted">{t.settings.completeProfileHint}</p>
+            <div className="mt-3 space-y-2">
+              <input
+                type="text"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void saveName()}
+                disabled={saveNameBusy}
+                placeholder={t.settings.firstName}
+                className="min-h-[44px] w-full rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50 disabled:opacity-50"
+              />
+              <input
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && void saveName()}
+                disabled={saveNameBusy}
+                placeholder={t.settings.lastName}
+                className="min-h-[44px] w-full rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50 disabled:opacity-50"
+              />
+              <NeonButton
+                accent="blue"
+                fullWidth
+                disabled={saveNameBusy || !firstName.trim() || !lastName.trim()}
+                onClick={() => void saveName()}
+              >
+                {saveNameBusy ? t.settings.saving : t.settings.saveName}
+              </NeonButton>
+            </div>
+          </GlassCard>
+        ) : account ? (
           <GlassCard glow accent="green">
             <div className="flex items-center gap-3">
               {account.avatarUrl ? (

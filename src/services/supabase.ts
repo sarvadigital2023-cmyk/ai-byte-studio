@@ -107,6 +107,27 @@ export async function signInWithGoogle(): Promise<{ error?: string }> {
   return error ? { error: error.message } : {}
 }
 
+/**
+ * Saves the user's name into their Supabase profile (auth user_metadata).
+ * `full_name` is what the account card reads back via toAccountInfo, and
+ * first_name/last_name are kept separately for future use. Storing it in
+ * user_metadata needs no database migration and travels with the session.
+ */
+export async function updateUserName(
+  firstName: string,
+  lastName: string,
+): Promise<{ error?: string }> {
+  if (!client) return { error: 'Supabase is not configured' }
+  const { error } = await client.auth.updateUser({
+    data: {
+      first_name: firstName,
+      last_name: lastName,
+      full_name: `${firstName} ${lastName}`.trim(),
+    },
+  })
+  return error ? { error: error.message } : {}
+}
+
 export async function signOut(): Promise<void> {
   await client?.auth.signOut()
 }
