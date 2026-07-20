@@ -298,12 +298,15 @@ export function SettingsPage() {
                     type="text"
                     inputMode="numeric"
                     autoComplete="one-time-code"
-                    maxLength={6}
+                    // Supabase OTP length is configurable (6–10 digits) — accept
+                    // any of them instead of hard-capping at 6, which used to
+                    // silently truncate an 8-digit code and make it never match.
+                    maxLength={10}
                     value={code}
                     onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
                     onKeyDown={(e) => e.key === 'Enter' && void confirmCode()}
                     placeholder={t.settings.codePlaceholder}
-                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-center text-lg font-bold tracking-[0.4em] outline-none placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-white/25 focus:border-neon-blue/50"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-center text-lg font-bold tracking-[0.3em] outline-none placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-white/25 focus:border-neon-blue/50"
                   />
                   <NeonButton
                     accent="blue"

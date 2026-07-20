@@ -208,12 +208,12 @@ export const en = {
     signedOut: 'Signed out',
     signInTitle: 'Sign in to generate',
     signInHint:
-      'Enter your email and we’ll send a 6-digit code. No password, no magic link — just type the code back in here.',
+      'Enter your email and we’ll send a code. No password, no magic link — just type the code back in here.',
     emailPlaceholder: 'you@email.com',
     getCode: 'Get code',
     sending: 'Sending…',
-    codeSentTo: 'We emailed a 6-digit code to {email}. Enter it below to finish signing in.',
-    codePlaceholder: '6-digit code',
+    codeSentTo: 'We emailed a code to {email}. Enter it below to finish signing in.',
+    codePlaceholder: 'Code from email',
     verify: 'Confirm code',
     verifying: 'Confirming…',
     resendCode: 'Send a new code',
@@ -238,7 +238,7 @@ export const en = {
       'Add it in Vercel → Project Settings → Environment Variables, then redeploy.',
     signInRequired: 'Sign in to generate',
     signInRequiredHint:
-      'Open Settings → Account, enter your email and confirm the 6-digit code. Generation unlocks right after.',
+      'Open Settings → Account, enter your email and confirm the code. Generation unlocks right after.',
   },
   conn: {
     reachable: '{p} API reachable',
