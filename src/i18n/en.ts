@@ -207,13 +207,23 @@ export const en = {
     signOut: 'Sign out',
     signedOut: 'Signed out',
     signInTitle: 'Sign in to generate',
-    signInHint: 'Generation uses paid provider credits, so an account is required.',
-    continueWithGoogle: 'Continue with Google',
-    orEmail: 'or email',
+    signInHint:
+      'Enter your email and we’ll send a 6-digit code. No password, no magic link — just type the code back in here.',
+    backendMissing:
+      'This deployment has no Supabase keys in its build environment yet, so sending a code won’t work here until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set for it (Preview and Production are separate scopes on Vercel).',
     emailPlaceholder: 'you@email.com',
-    sendLink: 'Send link',
+    getCode: 'Get code',
     sending: 'Sending…',
-    linkSent: 'Magic link sent — check your inbox',
+    codeSentTo: 'We emailed a 6-digit code to {email}. Enter it below to finish signing in.',
+    codePlaceholder: '6-digit code',
+    verify: 'Confirm code',
+    verifying: 'Confirming…',
+    resendCode: 'Send a new code',
+    changeEmail: 'Use a different email',
+    signedIn: 'Signed in — you can generate now',
+    orDivider: 'or',
+    continueWithGoogle: 'Continue with Google',
+    googleLaterHint: 'Google sign-in will be available after we move to our own domain.',
     footer: 'AI Byte Studio · PWA · v1.0.0',
   },
   pwa: {
@@ -230,7 +240,7 @@ export const en = {
       'Add it in Vercel → Project Settings → Environment Variables, then redeploy.',
     signInRequired: 'Sign in to generate',
     signInRequiredHint:
-      'Generation uses paid provider credits, so it requires a signed-in account. Open Settings to sign in.',
+      'Open Settings → Account, enter your email and confirm the 6-digit code. Generation unlocks right after.',
   },
   conn: {
     reachable: '{p} API reachable',

@@ -6,8 +6,8 @@ import { PROVIDERS, getKeyStatus, type KeyStatus } from '@/services/providers'
 import {
   supabase,
   isCloudEnabled,
-  signInWithMagicLink,
-  signInWithGoogle,
+  sendEmailOtp,
+  verifyEmailOtp,
   signOut,
 } from '@/services/supabase'
 import { useSettingsStore } from '@/store/settings'
@@ -15,7 +15,7 @@ import { toast } from '@/store/toasts'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { NeonButton } from '@/components/ui/NeonButton'
-import { useT, LOCALES, type Locale } from '@/i18n'
+import { useT, fmt, LOCALES, type Locale } from '@/i18n'
 
 const PROVIDER_ICON: Record<ProviderId, { icon: string; envVar: string }> = {
   heygen: { icon: '🎭', envVar: 'VITE_HEYGEN_API_KEY' },
@@ -54,10 +54,14 @@ export function SettingsPage() {
   })
   const [testMessages, setTestMessages] = useState<Partial<Record<ProviderId, string>>>({})
   const [keys, setKeys] = useState<KeyStatus | null>(null)
-  const [email, setEmail] = useState('')
   const [account, setAccount] = useState<AccountInfo | null>(null)
-  const [authBusy, setAuthBusy] = useState(false)
-  const [googleBusy, setGoogleBusy] = useState(false)
+  // Email OTP is a two-step flow: request a code, then verify it. `otpSent`
+  // toggles the card between the two steps.
+  const [email, setEmail] = useState('')
+  const [code, setCode] = useState('')
+  const [otpSent, setOtpSent] = useState(false)
+  const [sendBusy, setSendBusy] = useState(false)
+  const [verifyBusy, setVerifyBusy] = useState(false)
 
   useEffect(() => {
     void getKeyStatus(true).then(setKeys)
@@ -80,20 +84,39 @@ export function SettingsPage() {
     setTestMessages((m) => ({ ...m, [id]: res.message }))
   }
 
-  const sendMagicLink = async () => {
-    if (!email.trim()) return
-    setAuthBusy(true)
-    const { error } = await signInWithMagicLink(email.trim())
-    setAuthBusy(false)
-    if (error) toast(error, 'error')
-    else toast(t.settings.linkSent, 'success')
+  const requestCode = async () => {
+    const addr = email.trim()
+    if (!addr) return
+    setSendBusy(true)
+    const { error } = await sendEmailOtp(addr)
+    setSendBusy(false)
+    if (error) {
+      toast(error, 'error')
+      return
+    }
+    setCode('')
+    setOtpSent(true)
   }
 
-  const continueWithGoogle = async () => {
-    setGoogleBusy(true)
-    const { error } = await signInWithGoogle()
-    setGoogleBusy(false)
-    if (error) toast(error, 'error')
+  const confirmCode = async () => {
+    const digits = code.trim()
+    if (digits.length < 6) return
+    setVerifyBusy(true)
+    const { error } = await verifyEmailOtp(email.trim(), digits)
+    setVerifyBusy(false)
+    if (error) {
+      toast(error, 'error')
+      return
+    }
+    // onAuthStateChange will populate `account` and swap in the signed-in card.
+    setOtpSent(false)
+    setCode('')
+    toast(t.settings.signedIn, 'success')
+  }
+
+  const resetEmailStep = () => {
+    setOtpSent(false)
+    setCode('')
   }
 
   return (
@@ -206,10 +229,11 @@ export function SettingsPage() {
         })}
       </section>
 
-      {/* Account — this deployment's own concern, so the section simply
-          doesn't exist when there's no Supabase project behind it. */}
-      {isCloudEnabled && (
-        <section className="space-y-3">
+      {/* Account — always rendered so the sign-in UI is visible on every
+          deployment. When this deployment has no Supabase keys at build time
+          (isCloudEnabled === false) the card shows an explicit note instead of
+          silently disappearing. */}
+      <section className="space-y-3">
           <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
           {account ? (
             <GlassCard glow accent="green">
@@ -249,35 +273,89 @@ export function SettingsPage() {
             <GlassCard>
               <p className="text-sm font-bold">{t.settings.signInTitle}</p>
               <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
+
+              {!isCloudEnabled && (
+                <p className="mt-2 rounded-xl border border-neon-yellow/40 bg-neon-yellow/5 px-3 py-2 text-xs text-neon-yellow/90">
+                  {t.settings.backendMissing}
+                </p>
+              )}
+
+              {!otpSent ? (
+                /* Step 1 — ask for the email, then request a code. */
+                <div className="mt-3 flex gap-2">
+                  <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && void requestCode()}
+                    disabled={sendBusy}
+                    placeholder={t.settings.emailPlaceholder}
+                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50 disabled:opacity-50"
+                  />
+                  <NeonButton
+                    accent="blue"
+                    disabled={sendBusy || !email.trim()}
+                    onClick={() => void requestCode()}
+                  >
+                    {sendBusy ? t.settings.sending : t.settings.getCode}
+                  </NeonButton>
+                </div>
+              ) : (
+                /* Step 2 — the code has been emailed; verify what the user types. */
+                <div className="mt-3 space-y-3">
+                  <p className="text-xs text-muted">{fmt(t.settings.codeSentTo, { email })}</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      maxLength={6}
+                      value={code}
+                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                      onKeyDown={(e) => e.key === 'Enter' && void confirmCode()}
+                      placeholder={t.settings.codePlaceholder}
+                      className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-center text-lg font-bold tracking-[0.4em] outline-none placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-white/25 focus:border-neon-blue/50"
+                    />
+                    <NeonButton
+                      accent="blue"
+                      disabled={verifyBusy || code.trim().length < 6}
+                      onClick={() => void confirmCode()}
+                    >
+                      {verifyBusy ? t.settings.verifying : t.settings.verify}
+                    </NeonButton>
+                  </div>
+                  <div className="flex items-center gap-4 text-xs font-bold text-white/50">
+                    <button type="button" onClick={() => void requestCode()} disabled={sendBusy}>
+                      {t.settings.resendCode}
+                    </button>
+                    <button type="button" onClick={resetEmailStep}>
+                      {t.settings.changeEmail}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Google — a deliberate placeholder until we have an owned domain
+                  for the OAuth redirect. signInWithGoogle() already exists in
+                  the service layer, so enabling this later is a one-line wire-up. */}
+              <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
+                <span className="h-px flex-1 bg-white/10" />
+                {t.settings.orDivider}
+                <span className="h-px flex-1 bg-white/10" />
+              </div>
               <NeonButton
                 accent="blue"
                 fullWidth
-                disabled={googleBusy}
-                onClick={() => void continueWithGoogle()}
+                disabled
+                disabledReason={t.settings.googleLaterHint}
               >
-                {googleBusy ? t.settings.sending : t.settings.continueWithGoogle}
+                {t.settings.continueWithGoogle}
               </NeonButton>
-              <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
-                <span className="h-px flex-1 bg-white/10" />
-                {t.settings.orEmail}
-                <span className="h-px flex-1 bg-white/10" />
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={t.settings.emailPlaceholder}
-                  className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
-                />
-                <NeonButton accent="blue" disabled={authBusy} onClick={() => void sendMagicLink()}>
-                  {authBusy ? t.settings.sending : t.settings.sendLink}
-                </NeonButton>
-              </div>
             </GlassCard>
           )}
-        </section>
-      )}
+      </section>
 
       <p className="pt-2 text-center text-[11px] text-white/30">{t.settings.footer}</p>
     </div>
