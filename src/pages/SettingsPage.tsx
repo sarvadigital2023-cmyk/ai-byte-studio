@@ -3,13 +3,7 @@ import { motion } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import type { ConnectionTestState, ProviderId, VideoProviderId } from '@/types'
 import { PROVIDERS, getKeyStatus, type KeyStatus } from '@/services/providers'
-import {
-  supabase,
-  isCloudEnabled,
-  sendEmailOtp,
-  verifyEmailOtp,
-  signOut,
-} from '@/services/supabase'
+import { supabase, sendEmailOtp, verifyEmailOtp, signOut } from '@/services/supabase'
 import { useSettingsStore } from '@/store/settings'
 import { toast } from '@/store/toasts'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
@@ -230,131 +224,123 @@ export function SettingsPage() {
       </section>
 
       {/* Account — always rendered so the sign-in UI is visible on every
-          deployment. When this deployment has no Supabase keys at build time
-          (isCloudEnabled === false) the card shows an explicit note instead of
-          silently disappearing. */}
+          deployment. */}
       <section className="space-y-3">
-          <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
-          {account ? (
-            <GlassCard glow accent="green">
-              <div className="flex items-center gap-3">
-                {account.avatarUrl ? (
-                  <img
-                    src={account.avatarUrl}
-                    alt=""
-                    className="h-11 w-11 shrink-0 rounded-full object-cover"
-                  />
-                ) : (
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-base font-bold">
-                    {(account.name || account.email || '?').charAt(0).toUpperCase()}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold">{account.name || account.email}</p>
-                  {account.name && (
-                    <p className="truncate text-xs text-muted">{account.email}</p>
-                  )}
+        <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
+        {account ? (
+          <GlassCard glow accent="green">
+            <div className="flex items-center gap-3">
+              {account.avatarUrl ? (
+                <img
+                  src={account.avatarUrl}
+                  alt=""
+                  className="h-11 w-11 shrink-0 rounded-full object-cover"
+                />
+              ) : (
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/10 text-base font-bold">
+                  {(account.name || account.email || '?').charAt(0).toUpperCase()}
                 </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{account.name || account.email}</p>
+                {account.name && (
+                  <p className="truncate text-xs text-muted">{account.email}</p>
+                )}
               </div>
-              <p className="mt-2 text-xs text-muted">{t.settings.cloudOn}</p>
-              <div className="mt-3">
+            </div>
+            <p className="mt-2 text-xs text-muted">{t.settings.cloudOn}</p>
+            <div className="mt-3">
+              <NeonButton
+                variant="ghost"
+                onClick={() => {
+                  void signOut()
+                  toast(t.settings.signedOut, 'info')
+                }}
+              >
+                {t.settings.signOut}
+              </NeonButton>
+            </div>
+          </GlassCard>
+        ) : (
+          <GlassCard>
+            <p className="text-sm font-bold">{t.settings.signInTitle}</p>
+            <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
+
+            {!otpSent ? (
+              /* Step 1 — ask for the email, then request a code. */
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="email"
+                  inputMode="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && void requestCode()}
+                  disabled={sendBusy}
+                  placeholder={t.settings.emailPlaceholder}
+                  className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50 disabled:opacity-50"
+                />
                 <NeonButton
-                  variant="ghost"
-                  onClick={() => {
-                    void signOut()
-                    toast(t.settings.signedOut, 'info')
-                  }}
+                  accent="blue"
+                  disabled={sendBusy || !email.trim()}
+                  onClick={() => void requestCode()}
                 >
-                  {t.settings.signOut}
+                  {sendBusy ? t.settings.sending : t.settings.getCode}
                 </NeonButton>
               </div>
-            </GlassCard>
-          ) : (
-            <GlassCard>
-              <p className="text-sm font-bold">{t.settings.signInTitle}</p>
-              <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
-
-              {!isCloudEnabled && (
-                <p className="mt-2 rounded-xl border border-neon-yellow/40 bg-neon-yellow/5 px-3 py-2 text-xs text-neon-yellow/90">
-                  {t.settings.backendMissing}
-                </p>
-              )}
-
-              {!otpSent ? (
-                /* Step 1 — ask for the email, then request a code. */
-                <div className="mt-3 flex gap-2">
+            ) : (
+              /* Step 2 — the code has been emailed; verify what the user types. */
+              <div className="mt-3 space-y-3">
+                <p className="text-xs text-muted">{fmt(t.settings.codeSentTo, { email })}</p>
+                <div className="flex gap-2">
                   <input
-                    type="email"
-                    inputMode="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && void requestCode()}
-                    disabled={sendBusy}
-                    placeholder={t.settings.emailPlaceholder}
-                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50 disabled:opacity-50"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    maxLength={6}
+                    value={code}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
+                    onKeyDown={(e) => e.key === 'Enter' && void confirmCode()}
+                    placeholder={t.settings.codePlaceholder}
+                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-center text-lg font-bold tracking-[0.4em] outline-none placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-white/25 focus:border-neon-blue/50"
                   />
                   <NeonButton
                     accent="blue"
-                    disabled={sendBusy || !email.trim()}
-                    onClick={() => void requestCode()}
+                    disabled={verifyBusy || code.trim().length < 6}
+                    onClick={() => void confirmCode()}
                   >
-                    {sendBusy ? t.settings.sending : t.settings.getCode}
+                    {verifyBusy ? t.settings.verifying : t.settings.verify}
                   </NeonButton>
                 </div>
-              ) : (
-                /* Step 2 — the code has been emailed; verify what the user types. */
-                <div className="mt-3 space-y-3">
-                  <p className="text-xs text-muted">{fmt(t.settings.codeSentTo, { email })}</p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      inputMode="numeric"
-                      autoComplete="one-time-code"
-                      maxLength={6}
-                      value={code}
-                      onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
-                      onKeyDown={(e) => e.key === 'Enter' && void confirmCode()}
-                      placeholder={t.settings.codePlaceholder}
-                      className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-center text-lg font-bold tracking-[0.4em] outline-none placeholder:text-sm placeholder:font-normal placeholder:tracking-normal placeholder:text-white/25 focus:border-neon-blue/50"
-                    />
-                    <NeonButton
-                      accent="blue"
-                      disabled={verifyBusy || code.trim().length < 6}
-                      onClick={() => void confirmCode()}
-                    >
-                      {verifyBusy ? t.settings.verifying : t.settings.verify}
-                    </NeonButton>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs font-bold text-white/50">
-                    <button type="button" onClick={() => void requestCode()} disabled={sendBusy}>
-                      {t.settings.resendCode}
-                    </button>
-                    <button type="button" onClick={resetEmailStep}>
-                      {t.settings.changeEmail}
-                    </button>
-                  </div>
+                <div className="flex items-center gap-4 text-xs font-bold text-white/50">
+                  <button type="button" onClick={() => void requestCode()} disabled={sendBusy}>
+                    {t.settings.resendCode}
+                  </button>
+                  <button type="button" onClick={resetEmailStep}>
+                    {t.settings.changeEmail}
+                  </button>
                 </div>
-              )}
-
-              {/* Google — a deliberate placeholder until we have an owned domain
-                  for the OAuth redirect. signInWithGoogle() already exists in
-                  the service layer, so enabling this later is a one-line wire-up. */}
-              <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
-                <span className="h-px flex-1 bg-white/10" />
-                {t.settings.orDivider}
-                <span className="h-px flex-1 bg-white/10" />
               </div>
-              <NeonButton
-                accent="blue"
-                fullWidth
-                disabled
-                disabledReason={t.settings.googleLaterHint}
-              >
-                {t.settings.continueWithGoogle}
-              </NeonButton>
-            </GlassCard>
-          )}
+            )}
+
+            {/* Google — a deliberate placeholder until we have an owned domain
+                for the OAuth redirect. signInWithGoogle() already exists in
+                the service layer, so enabling this later is a one-line wire-up. */}
+            <div className="my-3 flex items-center gap-2 text-[11px] font-bold uppercase tracking-wide text-white/30">
+              <span className="h-px flex-1 bg-white/10" />
+              {t.settings.orDivider}
+              <span className="h-px flex-1 bg-white/10" />
+            </div>
+            <NeonButton
+              accent="blue"
+              fullWidth
+              disabled
+              disabledReason={t.settings.googleLaterHint}
+            >
+              {t.settings.continueWithGoogle}
+            </NeonButton>
+          </GlassCard>
+        )}
       </section>
 
       <p className="pt-2 text-center text-[11px] text-white/30">{t.settings.footer}</p>

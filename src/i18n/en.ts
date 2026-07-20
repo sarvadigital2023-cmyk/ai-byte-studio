@@ -209,8 +209,6 @@ export const en = {
     signInTitle: 'Sign in to generate',
     signInHint:
       'Enter your email and we’ll send a 6-digit code. No password, no magic link — just type the code back in here.',
-    backendMissing:
-      'This deployment has no Supabase keys in its build environment yet, so sending a code won’t work here until VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set for it (Preview and Production are separate scopes on Vercel).',
     emailPlaceholder: 'you@email.com',
     getCode: 'Get code',
     sending: 'Sending…',
