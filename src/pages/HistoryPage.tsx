@@ -40,7 +40,7 @@ export function HistoryPage() {
   }
 
   useEffect(() => {
-    if (isCloudEnabled) void refresh()
+    if (isCloudEnabled()) void refresh()
   }, [])
 
   return (

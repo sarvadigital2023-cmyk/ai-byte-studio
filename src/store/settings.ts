@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { StudioType, VideoProviderId } from '@/types'
-import { supabase, getCurrentUserId } from '@/services/supabase'
+import { getSupabase, getCurrentUserId } from '@/services/supabase'
 
 type Locale = 'en' | 'ru'
 
@@ -40,6 +40,7 @@ export const useSettingsStore = create<SettingsState>()(
       },
       setLastTab: (tab) => set({ lastTab: tab }),
       hydrateFromProfile: async () => {
+        const supabase = getSupabase()
         if (!supabase) return
         const userId = await getCurrentUserId()
         if (!userId) return
@@ -58,6 +59,7 @@ export const useSettingsStore = create<SettingsState>()(
 )
 
 async function saveProfilePreference(id: VideoProviderId): Promise<void> {
+  const supabase = getSupabase()
   if (!supabase) return
   const userId = await getCurrentUserId()
   if (!userId) return

@@ -24,7 +24,7 @@ export function AppHeader() {
           <span className="text-white/90">Studio</span>
         </Link>
         <div className="flex items-center gap-2">
-          {isCloudEnabled && (
+          {isCloudEnabled() && (
             <span
               title={syncing ? t.header.syncing : t.header.synced}
               className={`h-2 w-2 rounded-full transition-colors ${

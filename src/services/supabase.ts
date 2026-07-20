@@ -1,28 +1,65 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const url = import.meta.env.VITE_SUPABASE_URL
-const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
 /**
- * Supabase is optional: without env vars the app runs in local-only mode.
- * Every caller must handle `supabase === null`.
+ * Supabase client, created at runtime from config served by `/api/config`
+ * rather than from build-time `import.meta.env`. This removes the whole class
+ * of "the bundle was built without the VITE_ vars" failures: the server reads
+ * the values from process.env when the app boots, so it no longer matters
+ * whether they were present when the client bundle was compiled.
+ *
+ * `initSupabase()` runs once at startup (see main.tsx) BEFORE anything renders,
+ * so every later `getSupabase()` / `isCloudEnabled()` call sees the resolved
+ * client. Supabase stays optional: if no config comes back, the client is null
+ * and the app runs in local-only mode, exactly as before.
  */
-export const supabase: SupabaseClient | null =
-  url && anonKey ? createClient(url, anonKey) : null
+let client: SupabaseClient | null = null
+let initialized = false
 
-export const isCloudEnabled = supabase !== null
+interface PublicConfig {
+  supabaseUrl?: string | null
+  supabaseAnonKey?: string | null
+}
+
+export async function initSupabase(): Promise<void> {
+  if (initialized) return
+  initialized = true
+  try {
+    // Guard against a hung request bricking startup: fall back to local mode.
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 5000)
+    const res = await fetch('/api/config', { signal: ctrl.signal })
+    clearTimeout(timer)
+    if (!res.ok) return
+    const cfg = (await res.json()) as PublicConfig
+    if (cfg.supabaseUrl && cfg.supabaseAnonKey) {
+      client = createClient(cfg.supabaseUrl, cfg.supabaseAnonKey)
+    }
+  } catch {
+    // Network error, timeout or bad JSON → run without cloud features.
+  }
+}
+
+/** The initialized client, or null when Supabase isn't configured. */
+export function getSupabase(): SupabaseClient | null {
+  return client
+}
+
+/** True once a Supabase client exists (config was present and valid). */
+export function isCloudEnabled(): boolean {
+  return client !== null
+}
 
 export async function getCurrentUserId(): Promise<string | null> {
-  if (!supabase) return null
-  const { data } = await supabase.auth.getUser()
+  if (!client) return null
+  const { data } = await client.auth.getUser()
   return data.user?.id ?? null
 }
 
 /** The current session's access token, forwarded to the /api proxies so the
  * server can verify the caller. Null when Supabase is off or nobody is signed in. */
 export async function getAccessToken(): Promise<string | null> {
-  if (!supabase) return null
-  const { data } = await supabase.auth.getSession()
+  if (!client) return null
+  const { data } = await client.auth.getSession()
   return data.session?.access_token ?? null
 }
 
@@ -35,8 +72,8 @@ export async function getAccessToken(): Promise<string | null> {
  * link, so nothing depends on Site URL / Redirect URL configuration.
  */
 export async function sendEmailOtp(email: string): Promise<{ error?: string }> {
-  if (!supabase) return { error: 'Supabase is not configured' }
-  const { error } = await supabase.auth.signInWithOtp({
+  if (!client) return { error: 'Supabase is not configured' }
+  const { error } = await client.auth.signInWithOtp({
     email,
     options: { shouldCreateUser: true },
   })
@@ -49,8 +86,8 @@ export async function sendEmailOtp(email: string): Promise<{ error?: string }> {
  * session token is attached to every /api proxy call automatically.
  */
 export async function verifyEmailOtp(email: string, token: string): Promise<{ error?: string }> {
-  if (!supabase) return { error: 'Supabase is not configured' }
-  const { error } = await supabase.auth.verifyOtp({ email, token, type: 'email' })
+  if (!client) return { error: 'Supabase is not configured' }
+  const { error } = await client.auth.verifyOtp({ email, token, type: 'email' })
   return error ? { error: error.message } : {}
 }
 
@@ -62,8 +99,8 @@ export async function verifyEmailOtp(email: string, token: string): Promise<{ er
  * function; no other part of the auth flow has to change.
  */
 export async function signInWithGoogle(): Promise<{ error?: string }> {
-  if (!supabase) return { error: 'Supabase is not configured' }
-  const { error } = await supabase.auth.signInWithOAuth({
+  if (!client) return { error: 'Supabase is not configured' }
+  const { error } = await client.auth.signInWithOAuth({
     provider: 'google',
     options: { redirectTo: window.location.origin },
   })
@@ -71,5 +108,5 @@ export async function signInWithGoogle(): Promise<{ error?: string }> {
 }
 
 export async function signOut(): Promise<void> {
-  await supabase?.auth.signOut()
+  await client?.auth.signOut()
 }

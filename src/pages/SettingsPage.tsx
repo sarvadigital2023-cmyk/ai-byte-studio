@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import type { User } from '@supabase/supabase-js'
 import type { ConnectionTestState, ProviderId, VideoProviderId } from '@/types'
 import { PROVIDERS, getKeyStatus, type KeyStatus } from '@/services/providers'
-import { supabase, sendEmailOtp, verifyEmailOtp, signOut } from '@/services/supabase'
+import { getSupabase, sendEmailOtp, verifyEmailOtp, signOut } from '@/services/supabase'
 import { useSettingsStore } from '@/store/settings'
 import { toast } from '@/store/toasts'
 import { SegmentedControl } from '@/components/ui/SegmentedControl'
@@ -62,6 +62,7 @@ export function SettingsPage() {
   }, [])
 
   useEffect(() => {
+    const supabase = getSupabase()
     if (!supabase) return
     void supabase.auth.getUser().then(({ data }) => setAccount(toAccountInfo(data.user)))
     const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {

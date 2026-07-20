@@ -1,5 +1,5 @@
 import type { GenerationJob } from '@/types'
-import { supabase, getCurrentUserId } from './supabase'
+import { getSupabase, getCurrentUserId } from './supabase'
 
 /**
  * Generation history. Local-first: every job is stored in localStorage
@@ -57,6 +57,7 @@ export function deleteJob(id: string): void {
 // ---------- cloud sync (best-effort, background) ----------
 
 async function syncJobToCloud(job: GenerationJob): Promise<void> {
+  const supabase = getSupabase()
   if (!supabase) return
   const userId = await getCurrentUserId()
   if (!userId) return
@@ -81,6 +82,7 @@ async function syncJobToCloud(job: GenerationJob): Promise<void> {
 }
 
 async function deleteJobFromCloud(id: string): Promise<void> {
+  const supabase = getSupabase()
   if (!supabase) return
   const userId = await getCurrentUserId()
   if (!userId) return
@@ -93,6 +95,7 @@ async function deleteJobFromCloud(id: string): Promise<void> {
 
 /** Pull cloud history and merge into local (last-write-wins by createdAt). */
 export async function refreshFromCloud(): Promise<GenerationJob[]> {
+  const supabase = getSupabase()
   if (!supabase) return listLocalJobs()
   const userId = await getCurrentUserId()
   if (!userId) return listLocalJobs()

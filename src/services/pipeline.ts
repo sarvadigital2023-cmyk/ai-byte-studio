@@ -41,7 +41,7 @@ function overlayTitle(type: StudioType): string {
  * fail with 401/503 mid-run is caught here first with a clear message.
  */
 async function ensureSignedIn(): Promise<boolean> {
-  if (isCloudEnabled && (await getAccessToken())) return true
+  if (isCloudEnabled() && (await getAccessToken())) return true
   const t = getT()
   toast(t.toasts.signInRequired, 'error', { hint: t.toasts.signInRequiredHint, durationMs: 6000 })
   return false
