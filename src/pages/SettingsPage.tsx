@@ -290,8 +290,9 @@ export function SettingsPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && void requestCode()}
+                    disabled={sendBusy}
                     placeholder={t.settings.emailPlaceholder}
-                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50"
+                    className="min-h-[44px] min-w-0 flex-1 rounded-full border border-white/10 bg-white/5 px-4 text-sm outline-none placeholder:text-white/25 focus:border-neon-blue/50 disabled:opacity-50"
                   />
                   <NeonButton
                     accent="blue"
