@@ -202,6 +202,8 @@ export const ru: Dict = {
     signInTitle: 'Войдите, чтобы генерировать',
     signInHint:
       'Введите email — пришлём 6-значный код. Без пароля и без ссылки: просто введите код обратно в приложение.',
+    backendMissing:
+      'В окружении сборки этого деплоя пока нет ключей Supabase, поэтому отправка кода здесь не сработает, пока не заданы VITE_SUPABASE_URL и VITE_SUPABASE_ANON_KEY для него (Preview и Production на Vercel — разные области).',
     emailPlaceholder: 'you@email.com',
     getCode: 'Получить код',
     sending: 'Отправка…',

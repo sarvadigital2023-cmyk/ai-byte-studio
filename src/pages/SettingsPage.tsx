@@ -229,10 +229,11 @@ export function SettingsPage() {
         })}
       </section>
 
-      {/* Account — this deployment's own concern, so the section simply
-          doesn't exist when there's no Supabase project behind it. */}
-      {isCloudEnabled && (
-        <section className="space-y-3">
+      {/* Account — always rendered so the sign-in UI is visible on every
+          deployment. When this deployment has no Supabase keys at build time
+          (isCloudEnabled === false) the card shows an explicit note instead of
+          silently disappearing. */}
+      <section className="space-y-3">
           <h2 className="text-sm font-bold text-white/80">{t.settings.account}</h2>
           {account ? (
             <GlassCard glow accent="green">
@@ -272,6 +273,12 @@ export function SettingsPage() {
             <GlassCard>
               <p className="text-sm font-bold">{t.settings.signInTitle}</p>
               <p className="mt-1 text-xs text-muted">{t.settings.signInHint}</p>
+
+              {!isCloudEnabled && (
+                <p className="mt-2 rounded-xl border border-neon-yellow/40 bg-neon-yellow/5 px-3 py-2 text-xs text-neon-yellow/90">
+                  {t.settings.backendMissing}
+                </p>
+              )}
 
               {!otpSent ? (
                 /* Step 1 — ask for the email, then request a code. */
@@ -347,8 +354,7 @@ export function SettingsPage() {
               </NeonButton>
             </GlassCard>
           )}
-        </section>
-      )}
+      </section>
 
       <p className="pt-2 text-center text-[11px] text-white/30">{t.settings.footer}</p>
     </div>
