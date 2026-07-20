@@ -92,11 +92,20 @@ reaches a provider is guarded (`api/_proxy.ts → guardRequest`) by:
 - **Required auth** — the caller must send a valid Supabase session token,
   verified server-side against `…/auth/v1/user` using only the public anon
   key (no service-role key). The browser attaches this automatically once
-  signed in; generation shows a "sign in" prompt otherwise. Users can sign in
-  with Google or an email magic link (Settings → Account). Google sign-in
-  additionally requires enabling the Google provider in the Supabase
-  dashboard (Authentication → Providers) with an OAuth client ID/secret —
-  magic-link email sign-in needs no extra setup.
+  signed in; generation shows a "sign in" prompt otherwise. Users sign in with
+  an email one-time code (Settings → Account): they enter their email, Supabase
+  emails a 6-digit code through its own SMTP (`signInWithOtp`), and typing the
+  code back (`verifyOtp`) creates the session. No magic link, no third-party
+  email service, and nothing depends on the Site URL / Redirect URL settings.
+  Google sign-in is present as a disabled placeholder and is wired up in the
+  service layer (`signInWithGoogle`); enabling it later only needs the Google
+  provider turned on in Supabase (Authentication → Providers) once the project
+  moves to an owned domain for the OAuth redirect.
+
+  **Supabase email settings for the code to arrive:** Authentication →
+  Providers → Email must be enabled, and the "Magic Link" email template must
+  include the `{{ .Token }}` variable so the message actually contains the
+  6-digit code (not only a link).
 
 **Supabase must be configured for generation to work at all.** `verifyAuth`
 fails closed: if `SUPABASE_URL`/`SUPABASE_ANON_KEY` (or their `VITE_`
