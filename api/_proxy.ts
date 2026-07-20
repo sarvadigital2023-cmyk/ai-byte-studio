@@ -132,9 +132,13 @@ function rateLimited(ip: string): boolean {
  * credits and must never be reachable by an anonymous caller. Deploying this
  * app publicly therefore requires Supabase to be configured (see README).
  */
-async function verifyAuth(
-  req: VercelRequest,
-): Promise<{ ok: true } | { ok: false; status: number; message: string }> {
+interface AuthResult {
+  ok: boolean
+  status: number
+  message: string
+}
+
+async function verifyAuth(req: VercelRequest): Promise<AuthResult> {
   const supaUrl = envKey('SUPABASE_URL', 'VITE_SUPABASE_URL')
   const supaAnon = envKey('SUPABASE_ANON_KEY', 'VITE_SUPABASE_ANON_KEY')
   if (!supaUrl || !supaAnon) {
@@ -154,7 +158,7 @@ async function verifyAuth(
     const r = await fetch(`${supaUrl.replace(/\/+$/, '')}/auth/v1/user`, {
       headers: { apikey: supaAnon, authorization: `Bearer ${token}` },
     })
-    if (r.ok) return { ok: true }
+    if (r.ok) return { ok: true, status: 200, message: '' }
     return { ok: false, status: 401, message: 'Your session is invalid or expired' }
   } catch {
     return { ok: false, status: 503, message: 'Could not verify your session' }
